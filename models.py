@@ -14,22 +14,25 @@ from database import Base
 class Standard(Base):
     __tablename__ = "standards"
     id = Column(Integer, primary_key=True, index=True)
-    std_name = Column(String(50), nullable=False,unique=True)
-
-    students = relationship("Student", back_populates="standard")
-    subjects = relationship("Subject", back_populates="standard")
-    
+    std_name = Column(String(50),nullable=False,unique=True)
+    subjects = relationship("Subject",back_populates="standard")
+    enrollments = relationship("StudentStandard",back_populates="standard")
 class Student(Base):
     __tablename__ = "students"
     id = Column(Integer, primary_key=True, index=True)
     student_name = Column(String(100), nullable=False)
-    standard_id = Column(Integer,ForeignKey("standards.id"))
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    standard = relationship("Standard", back_populates="students")
-    marks = relationship(
-        "StudentMark",
-        back_populates="student"
-    )
+    marks = relationship("StudentMark",back_populates="student")
+    enrollments = relationship("StudentStandard",back_populates="student")
+class StudentStandard(Base):
+    __tablename__ = "student_standards"
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer,ForeignKey("students.id"),nullable=False)
+    standard_id = Column(Integer,ForeignKey("standards.id"),nullable=False)
+    is_current = Column(Boolean,default=True,nullable=False)
+    enrolled_at = Column(DateTime,server_default=func.now(),nullable=False)
+    student = relationship("Student",back_populates="enrollments")
+    standard = relationship("Standard",back_populates="enrollments")
 class Subject(Base):
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True, index=True)

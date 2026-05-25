@@ -1,11 +1,19 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import Base, Standard, Student, Subject, StudentMark
+from models import (
+    Base,
+    Standard,
+    Student,
+    StudentStandard,
+    Subject,
+    StudentMark
+)
 
 from schemas import (
     StandardCreate,
     StudentCreate,
+    EnrollmentCreate,
     SubjectCreate,
     MarkCreate
 )
@@ -35,13 +43,49 @@ def create_student(
     db: Session = Depends(get_db)
 ):
     db_student = Student(
-        student_name=student.student_name,
-        standard_id=student.standard_id
+        student_name=student.student_name
     )
     db.add(db_student)
+    db.flush()
+    enrollment = StudentStandard(
+        student_id=db_student.id,
+        standard_id=student.standard_id,
+        is_current=True
+    )
+    db.add(enrollment)
     db.commit()
     db.refresh(db_student)
     return db_student
+@app.post("/enrollments")
+def enroll_student(
+    enrollment: EnrollmentCreate,
+    db: Session = Depends(get_db)
+):
+    student = db.query(Student).filter(
+        Student.id == enrollment.student_id
+    ).first()
+    if not student:
+        return {"error": "Student not found"}
+    standard = db.query(Standard).filter(
+        Standard.id == enrollment.standard_id
+    ).first()
+    if not standard:
+        return {"error": "Standard not found"}
+    current_enrollments = db.query(StudentStandard).filter(
+        StudentStandard.student_id == enrollment.student_id,
+        StudentStandard.is_current == True
+    ).all()
+    for row in current_enrollments:
+        row.is_current = False
+    new_enrollment = StudentStandard(
+        student_id=enrollment.student_id,
+        standard_id=enrollment.standard_id,
+        is_current=True
+    )
+    db.add(new_enrollment)
+    db.commit()
+    db.refresh(new_enrollment)
+    return new_enrollment
 @app.post("/subjects")
 def create_subject(
     subject: SubjectCreate,
