@@ -48,9 +48,10 @@ def create_student(
     db.add(db_student)
     db.flush()
     enrollment = StudentStandard(
-        student_id=db_student.id,
-        standard_id=student.standard_id,
-        is_current=True
+    student_id=db_student.id,
+    standard_id=student.standard_id,
+    academic_year=student.academic_year,
+    is_current=True
     )
     db.add(enrollment)
     db.commit()
@@ -73,10 +74,10 @@ def enroll_student(
             "error": "Standard not found"
         }
     existing_current = db.query(StudentStandard).filter(
-        StudentStandard.student_id == enrollment.student_id,
-        StudentStandard.standard_id == enrollment.standard_id,
-        StudentStandard.is_current == True
-    ).first()
+    StudentStandard.student_id == enrollment.student_id,
+    StudentStandard.standard_id == enrollment.standard_id,
+    StudentStandard.academic_year == enrollment.academic_year
+).first()
     if existing_current:
         return {
             "error": "Student is already in this standard"
@@ -86,19 +87,21 @@ def enroll_student(
     for row in current_enrollments:
         row.is_current = False
     new_enrollment = StudentStandard(
-        student_id=enrollment.student_id,
-        standard_id=enrollment.standard_id,
-        is_current=True
+    student_id=enrollment.student_id,
+    standard_id=enrollment.standard_id,
+    academic_year=enrollment.academic_year,
+    is_current=True
     )
     db.add(new_enrollment)
     db.commit()
     db.refresh(new_enrollment)
     return {
-        "message": "Student enrolled successfully",
-        "enrollment_id": new_enrollment.id,
-        "student_id": new_enrollment.student_id,
-        "standard_id": new_enrollment.standard_id,
-        "is_current": new_enrollment.is_current
+    "message": "Student enrolled successfully",
+    "enrollment_id": new_enrollment.id,
+    "student_id": new_enrollment.student_id,
+    "standard_id": new_enrollment.standard_id,
+    "academic_year": new_enrollment.academic_year,
+    "is_current": new_enrollment.is_current
     }
 @app.post("/subjects")
 def create_subject(
