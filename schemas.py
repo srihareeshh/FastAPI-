@@ -19,7 +19,7 @@ class SubjectCreate(BaseModel):
     subject_name: str
     standard_id: int
 class MarkCreate(BaseModel):
-    student_id: int
+    student_standard_id: int
     subject_id: int
     marks: int
     

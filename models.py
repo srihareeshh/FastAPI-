@@ -22,7 +22,6 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_name = Column(String(100), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    marks = relationship("StudentMark",back_populates="student")
     enrollments = relationship("StudentStandard",back_populates="student")
 class StudentStandard(Base):
     __tablename__ = "student_standards"
@@ -33,6 +32,7 @@ class StudentStandard(Base):
     enrolled_at = Column(DateTime,server_default=func.now(),nullable=False)
     student = relationship("Student",back_populates="enrollments")
     standard = relationship("Standard",back_populates="enrollments")
+    marks = relationship("StudentMark",back_populates="student_standard")
 class Subject(Base):
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True, index=True)
@@ -44,10 +44,10 @@ class Subject(Base):
 class StudentMark(Base):
     __tablename__ = "student_marks"
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer,ForeignKey("students.id"))
+    student_standard_id = Column(Integer,ForeignKey("student_standards.id"))
     subject_id = Column(Integer,ForeignKey("subjects.id"))
     marks = Column(Integer)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
-    student = relationship("Student", back_populates="marks")
-    subject = relationship("Subject", back_populates="marks")
+    created_at = Column(DateTime,server_default=func.now(),nullable=False)
+    updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
+    student_standard = relationship("StudentStandard",back_populates="marks")
+    subject = relationship("Subject",back_populates="marks")

@@ -62,19 +62,27 @@ def enroll_student(
     db: Session = Depends(get_db)
 ):
     student = db.query(Student).filter(
-        Student.id == enrollment.student_id
-    ).first()
+        Student.id == enrollment.student_id).first()
     if not student:
-        return {"error": "Student not found"}
-    standard = db.query(Standard).filter(
-        Standard.id == enrollment.standard_id
-    ).first()
+        return {
+            "error": "Student not found"
+        }
+    standard = db.query(Standard).filter(Standard.id == enrollment.standard_id).first()
     if not standard:
-        return {"error": "Standard not found"}
-    current_enrollments = db.query(StudentStandard).filter(
+        return {
+            "error": "Standard not found"
+        }
+    existing_current = db.query(StudentStandard).filter(
         StudentStandard.student_id == enrollment.student_id,
+        StudentStandard.standard_id == enrollment.standard_id,
         StudentStandard.is_current == True
-    ).all()
+    ).first()
+    if existing_current:
+        return {
+            "error": "Student is already in this standard"
+        }
+
+    current_enrollments = db.query(StudentStandard).filter(StudentStandard.student_id == enrollment.student_id,StudentStandard.is_current == True).all()
     for row in current_enrollments:
         row.is_current = False
     new_enrollment = StudentStandard(
@@ -85,7 +93,13 @@ def enroll_student(
     db.add(new_enrollment)
     db.commit()
     db.refresh(new_enrollment)
-    return new_enrollment
+    return {
+        "message": "Student enrolled successfully",
+        "enrollment_id": new_enrollment.id,
+        "student_id": new_enrollment.student_id,
+        "standard_id": new_enrollment.standard_id,
+        "is_current": new_enrollment.is_current
+    }
 @app.post("/subjects")
 def create_subject(
     subject: SubjectCreate,
@@ -105,10 +119,20 @@ def create_subject(
 def add_marks(
     mark: MarkCreate,
     db: Session = Depends(get_db)
-
 ):
+    enrollment = db.query(StudentStandard).filter(
+        StudentStandard.id == mark.student_standard_id).first()
+    if not enrollment:
+        return {"error": "Enrollment not found"}
+    subject = db.query(Subject).filter(Subject.id == mark.subject_id).first()
+    if not subject:
+        return {"error": "Subject not found"}
+    if enrollment.standard_id != subject.standard_id:
+        return {
+            "error": "Subject does not belong to student's standard"
+        }
     db_mark = StudentMark(
-        student_id=mark.student_id,
+        student_standard_id=mark.student_standard_id,
         subject_id=mark.subject_id,
         marks=mark.marks
     )
