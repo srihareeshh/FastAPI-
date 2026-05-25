@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends,HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import (
@@ -65,23 +65,17 @@ def enroll_student(
     student = db.query(Student).filter(
         Student.id == enrollment.student_id).first()
     if not student:
-        return {
-            "error": "Student not found"
-        }
+        raise HTTPException(status_code=404,detail="Student not found")
     standard = db.query(Standard).filter(Standard.id == enrollment.standard_id).first()
     if not standard:
-        return {
-            "error": "Standard not found"
-        }
+        raise HTTPException(status_code=404,detail="Standard not found")
     existing_current = db.query(StudentStandard).filter(
     StudentStandard.student_id == enrollment.student_id,
     StudentStandard.standard_id == enrollment.standard_id,
     StudentStandard.academic_year == enrollment.academic_year
 ).first()
     if existing_current:
-        return {
-            "error": "Student is already in this standard"
-        }
+        raise HTTPException (status_code=409,detail="Student already existing in this standard")
 
     current_enrollments = db.query(StudentStandard).filter(StudentStandard.student_id == enrollment.student_id,StudentStandard.is_current == True).all()
     for row in current_enrollments:
@@ -102,7 +96,7 @@ def enroll_student(
     "standard_id": new_enrollment.standard_id,
     "academic_year": new_enrollment.academic_year,
     "is_current": new_enrollment.is_current
-    }
+}
 @app.post("/subjects")
 def create_subject(
     subject: SubjectCreate,
@@ -126,14 +120,12 @@ def add_marks(
     enrollment = db.query(StudentStandard).filter(
         StudentStandard.id == mark.student_standard_id).first()
     if not enrollment:
-        return {"error": "Enrollment not found"}
+        raise HTTPException(status_code=404,detail="Enrollment not found")
     subject = db.query(Subject).filter(Subject.id == mark.subject_id).first()
     if not subject:
-        return {"error": "Subject not found"}
+        raise HTTPException(status_code=404,detail="Subject not found")
     if enrollment.standard_id != subject.standard_id:
-        return {
-            "error": "Subject does not belong to student's standard"
-        }
+        raise HTTPException(status_code=400,detail="Subject does not belong to student's standard")
     db_mark = StudentMark(
         student_standard_id=mark.student_standard_id,
         subject_id=mark.subject_id,
