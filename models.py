@@ -15,7 +15,7 @@ class Standard(Base):
     __tablename__ = "standards"
     id = Column(Integer, primary_key=True, index=True)
     std_name = Column(String(50), nullable=False,unique=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
     students = relationship("Student", back_populates="standard")
     subjects = relationship("Subject", back_populates="standard")
     
@@ -24,6 +24,7 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_name = Column(String(100), nullable=False)
     standard_id = Column(Integer,ForeignKey("standards.id"))
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
     standard = relationship("Standard", back_populates="students")
     marks = relationship(
         "StudentMark",
