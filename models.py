@@ -1,12 +1,24 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    DateTime,
+    Boolean,
+    UniqueConstraint,
+    CheckConstraint,
+)
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from database import Base
 class Standard(Base):
     __tablename__ = "standards"
     id = Column(Integer, primary_key=True, index=True)
     std_name = Column(String(50), nullable=False,unique=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
     students = relationship("Student", back_populates="standard")
     subjects = relationship("Subject", back_populates="standard")
+    
 class Student(Base):
     __tablename__ = "students"
     id = Column(Integer, primary_key=True, index=True)
@@ -31,5 +43,7 @@ class StudentMark(Base):
     student_id = Column(Integer,ForeignKey("students.id"))
     subject_id = Column(Integer,ForeignKey("subjects.id"))
     marks = Column(Integer)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     student = relationship("Student", back_populates="marks")
     subject = relationship("Subject", back_populates="marks")

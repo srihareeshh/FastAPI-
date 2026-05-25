@@ -1,4 +1,12 @@
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
 class StandardCreate(BaseModel):
     std_name: str
 class StudentCreate(BaseModel):
