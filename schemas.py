@@ -24,3 +24,11 @@ class MarkCreate(BaseModel):
     student_standard_id: int
     subject_id: int
     marks: int
+    @field_validator("marks")
+    @classmethod
+    def validate_marks(cls, value):
+        if value < 0:
+            raise ValueError(
+                "Marks cannot be negative"
+            )
+        return value

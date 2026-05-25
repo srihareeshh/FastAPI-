@@ -52,3 +52,5 @@ class StudentMark(Base):
     updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
     student_standard = relationship("StudentStandard",back_populates="marks")
     subject = relationship("Subject",back_populates="marks")
+    __table_args__ = (CheckConstraint("marks >= 0",name="check_marks_non_negative"),
+    )
