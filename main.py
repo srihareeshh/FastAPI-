@@ -46,6 +46,7 @@ def create_subject(
     subject: SubjectCreate,
     db: Session = Depends(get_db)
 ):
+    
         
     db_subject = Subject(
         subject_name=subject.subject_name,

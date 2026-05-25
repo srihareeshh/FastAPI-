@@ -33,6 +33,7 @@ class Subject(Base):
         "StudentMark",
         back_populates="subject"
     )
+    
 class StudentMark(Base):
     __tablename__ = "student_marks"
     id = Column(Integer, primary_key=True, index=True)
