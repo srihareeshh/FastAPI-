@@ -15,6 +15,8 @@ class Standard(Base):
     __tablename__ = "standards"
     id = Column(Integer, primary_key=True, index=True)
     std_name = Column(String(50),nullable=False,unique=True)
+    created_at = Column(DateTime,server_default=func.now(),nullable=False)
+    updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
     subjects = relationship("Subject",back_populates="standard")
     enrollments = relationship("StudentStandard",back_populates="standard")
 class Student(Base):
@@ -22,15 +24,18 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_name = Column(String(100), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
     enrollments = relationship("StudentStandard",back_populates="student")
 class StudentStandard(Base):
     __tablename__ = "student_standards"
+    __table_args__ = (UniqueConstraint("student_id","academic_year",name="unique_student_academic_year"),)
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer,ForeignKey("students.id"),nullable=False)
     standard_id = Column(Integer,ForeignKey("standards.id"),nullable=False)
     academic_year = Column(String(20),nullable=False)
     is_current = Column(Boolean,default=True,nullable=False)
     enrolled_at = Column(DateTime,server_default=func.now(),nullable=False)
+    updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
     student = relationship("Student",back_populates="enrollments")
     standard = relationship("Standard",back_populates="enrollments")
     marks = relationship("StudentMark",back_populates="student_standard")
