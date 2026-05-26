@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Optional
-
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -32,3 +31,11 @@ class MarkCreate(BaseModel):
                 "Marks cannot be negative"
             )
         return value
+class MarkUpdate(BaseModel):
+    marks: int
+    @field_validator("marks")
+    @classmethod
+    def marks_must_be_non_negative(cls, v):
+        if v < 0:
+            raise ValueError("Marks cannot be negative")
+        return v

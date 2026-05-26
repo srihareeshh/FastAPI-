@@ -15,7 +15,8 @@ from schemas import (
     StudentCreate,
     EnrollmentCreate,
     SubjectCreate,
-    MarkCreate
+    MarkCreate,
+    MarkUpdate
 )
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -46,7 +47,7 @@ def create_standard(
     return db_standard
 @app.post("/students")
 def create_student(
-    student: StudentCreate,
+    student: StudentCreate,    
     db: Session = Depends(get_db)
 ):
     standard = db.query(Standard).filter(Standard.id == student.standard_id).first()
@@ -166,5 +167,123 @@ def add_marks(
             status_code=409,
             detail="Marks already entered for this subject"
         )
+    db.refresh(db_mark)
+    return db_mark
+@app.get("/standards")
+def get_standards(
+    db: Session = Depends(get_db)
+):
+    standards = db.query(Standard).all()
+    return standards
+@app.get("/students")
+def get_students(
+    db: Session = Depends(get_db)
+):
+    students = db.query(Student).all()
+    return students
+@app.get("/subjects")
+def get_subjects(
+    db: Session = Depends(get_db)
+):
+    subjects = db.query(Subject).all()
+    return subjects
+@app.get("/enrollments")
+def get_enrollments(
+    db: Session = Depends(get_db)
+):
+    enrollments = db.query(StudentStandard).all()
+    return enrollments
+@app.get("/marks")
+def get_marks(
+    db: Session = Depends(get_db)
+):
+    marks = db.query(StudentMark).all()
+    return marks
+@app.get("/students/{student_id}")
+def get_student(
+    student_id: int,
+    db: Session = Depends(get_db)
+):
+    student = db.query(Student).filter(
+        Student.id == student_id
+    ).first()
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found"
+        )
+    return student
+@app.get("/standards/{standard_id}")
+def get_standard(
+    standard_id: int,
+    db: Session = Depends(get_db)
+):
+    standard = db.query(Standard).filter(
+        Standard.id == standard_id
+    ).first()
+    if not standard:
+        raise HTTPException(
+            status_code=404,
+            detail="Standard not found"
+        )
+    return standard
+@app.get("/subjects/{subject_id}")
+def get_subject(
+    subject_id: int,
+    db: Session = Depends(get_db)
+):
+    subject = db.query(Subject).filter(
+        Subject.id == subject_id
+    ).first()
+    if not subject:
+        raise HTTPException(
+            status_code=404,
+            detail="Subject not found"
+        )
+    return subject
+@app.get("/enrollments/{enrollment_id}")
+def get_enrollment(
+    enrollment_id: int,
+    db: Session = Depends(get_db)
+):
+    enrollment = db.query(StudentStandard).filter(
+        StudentStandard.id == enrollment_id
+    ).first()
+    if not enrollment:
+        raise HTTPException(
+            status_code=404,
+            detail="Enrollment not found"
+        )
+    return enrollment
+@app.get("/marks/{mark_id}")
+def get_mark(
+    mark_id: int,
+    db: Session = Depends(get_db)
+):
+    mark = db.query(StudentMark).filter(
+        StudentMark.id == mark_id
+    ).first()
+    if not mark:
+        raise HTTPException(
+            status_code=404,
+            detail="Mark not found"
+        )
+    return mark
+@app.put("/marks/{mark_id}")
+def update_mark(
+    mark_id: int,
+    updated_mark: MarkUpdate,
+    db: Session = Depends(get_db)
+):
+    db_mark = db.query(StudentMark).filter(
+        StudentMark.id == mark_id
+    ).first()
+    if not db_mark:
+        raise HTTPException(
+            status_code=404,
+            detail="Mark not found"
+        )
+    db_mark.marks = updated_mark.marks
+    db.commit()
     db.refresh(db_mark)
     return db_mark
