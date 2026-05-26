@@ -41,6 +41,7 @@ class Subject(Base):
     standard_id = Column(Integer,ForeignKey("standards.id"))
     standard = relationship("Standard", back_populates="subjects")
     marks = relationship("StudentMark",back_populates="subject")
+    __table_args__ = (UniqueConstraint("standard_id","subject_name",name="unique_subject_per_standard"),)
 
 class StudentMark(Base):
     __tablename__ = "student_marks"
@@ -53,4 +54,4 @@ class StudentMark(Base):
     student_standard = relationship("StudentStandard",back_populates="marks")
     subject = relationship("Subject",back_populates="marks")
     __table_args__ = (CheckConstraint("marks >= 0",name="check_marks_non_negative"),
-    )
+    UniqueConstraint("student_standard_id","subject_id",name="unique_student_subject_mark"),)
