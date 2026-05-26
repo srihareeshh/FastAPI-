@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends,HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import (
@@ -34,7 +35,14 @@ def create_standard(
         std_name=standard.std_name
     )
     db.add(db_standard)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Standard already exists"
+        )
     db.refresh(db_standard)
     return db_standard
 @app.post("/students")
@@ -109,7 +117,14 @@ def create_subject(
         standard_id=subject.standard_id
     )
     db.add(db_subject)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Subject already exists for this standard"
+        )
     db.refresh(db_subject)
     return db_subject
 @app.post("/marks")
@@ -132,6 +147,13 @@ def add_marks(
         marks=mark.marks
     )
     db.add(db_mark)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Marks already entered for this subject"
+        )
     db.refresh(db_mark)
     return db_mark
