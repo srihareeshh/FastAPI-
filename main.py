@@ -18,7 +18,8 @@ from schemas import (
     MarkCreate,
     MarkUpdate,
     StudentUpdate,
-    SubjectUpdate
+    SubjectUpdate,
+    ReactivateStudent
 )
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -340,6 +341,8 @@ def update_student(
     ).first()
     if not db_student:
         raise HTTPException(status_code=404,detail="Student not found")
+    if db_student.is_active == False:
+        raise HTTPException(status_code=400,detail="Cannot update inactive student")
     db_student.student_name = updated_student.student_name
     db.commit()
     db.refresh(db_student)
@@ -355,6 +358,8 @@ def update_subject(
     ).first()
     if not db_subject:
         raise HTTPException(status_code=404,detail="Subject not found")
+    if db_subject.is_active == False:
+        raise HTTPException(status_code=400,detail="Cannot update inactive subject")
     db_subject.subject_name = updated_subject.subject_name
     try:
         db.commit()
@@ -389,6 +394,13 @@ def delete_student(
     ).first()
     if not db_student:
         raise HTTPException(status_code=404,detail="Student not found")
+    current_enrollments = db.query(StudentStandard).filter(
+        StudentStandard.student_id == student_id,
+        StudentStandard.is_current == True
+    ).all()
+
+    for row in current_enrollments:
+        row.is_current = False
     db_student.is_active = False
     db.commit()
     db.refresh(db_student)
@@ -398,7 +410,7 @@ def delete_student(
 @app.put("/students/reactivate/{student_id}")
 def reactivate_student(
     student_id: int,
-    enrollment: EnrollmentCreate,
+    enrollment: ReactivateStudent,
     db: Session = Depends(get_db)
 ):
     existing_student = db.query(Student).filter(Student.id == student_id).first()
@@ -419,6 +431,8 @@ def reactivate_student(
         new_start_year = int(enrollment.academic_year.split("-")[0])
         if new_start_year <= latest_start_year:
             raise HTTPException(status_code=400,detail="Academic year must be greater than previous enrollment year")
+        if enrollment.standard_id <= latest_enrollment.standard_id:
+            raise HTTPException(status_code=400,detail="Student cannot be enrolled in lower or same standard")
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == student_id,
         StudentStandard.is_current == True
