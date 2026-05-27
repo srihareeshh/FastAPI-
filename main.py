@@ -16,7 +16,8 @@ from schemas import (
     EnrollmentCreate,
     SubjectCreate,
     MarkCreate,
-    MarkUpdate
+    MarkUpdate,
+    StudentUpdate
 )
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -302,3 +303,18 @@ def delete_mark(
     return {
         "message": "Mark deleted successfully"
     }
+@app.put("/students/{student_id}")
+def update_student(
+    student_id: int,
+    updated_student: StudentUpdate,
+    db: Session = Depends(get_db)
+):
+    db_student = db.query(Student).filter(
+        Student.id == student_id
+    ).first()
+    if not db_student:
+        raise HTTPException(status_code=404,detail="Student not found")
+    db_student.student_name = updated_student.student_name
+    db.commit()
+    db.refresh(db_student)
+    return db_student

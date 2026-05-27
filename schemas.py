@@ -39,3 +39,5 @@ class MarkUpdate(BaseModel):
         if v < 0:
             raise ValueError("Marks cannot be negative")
         return v
+class StudentUpdate(BaseModel):
+    student_name: str
