@@ -46,6 +46,9 @@ class Subject(Base):
     standard_id = Column(Integer,ForeignKey("standards.id"))
     standard = relationship("Standard", back_populates="subjects")
     marks = relationship("StudentMark",back_populates="subject")
+    is_active = Column(Boolean,default=True,nullable=False)
+    created_at = Column(DateTime,server_default=func.now(),nullable=False)
+    updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
     __table_args__ = (UniqueConstraint("standard_id","subject_name",name="unique_subject_per_standard"),)
 
 class StudentMark(Base):

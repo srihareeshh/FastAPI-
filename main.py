@@ -130,6 +130,18 @@ def create_subject(
             status_code=404,
             detail="Standard not found"
         )
+    existing_subject = db.query(Subject).filter(
+    Subject.subject_name == subject.subject_name,
+    Subject.standard_id == subject.standard_id,
+    Subject.is_active == False
+).first()
+    if existing_subject:
+        existing_subject.is_active = True
+        db.commit()
+        db.refresh(existing_subject)
+        return {
+            "message": "Inactive subject reactivated successfully"
+        }
     db_subject = Subject(subject_name=subject.subject_name,standard_id=subject.standard_id)
     db.add(db_subject)
     try:
@@ -187,7 +199,7 @@ def get_students(
 def get_subjects(
     db: Session = Depends(get_db)
 ):
-    subjects = db.query(Subject).all()
+    subjects = db.query(Subject).filter(Subject.is_active == True).all()
     return subjects
 @app.get("/enrollments")
 def get_enrollments(
@@ -338,3 +350,19 @@ def update_subject(
         raise HTTPException(status_code=409,detail="Subject already exists for this standard")
     db.refresh(db_subject)
     return db_subject
+@app.delete("/subjects/{subject_id}")
+def delete_subject(
+    subject_id: int,
+    db: Session = Depends(get_db)
+):
+    db_subject = db.query(Subject).filter(
+        Subject.id == subject_id
+    ).first()
+    if not db_subject:
+        raise HTTPException(status_code=404,detail="Subject not found")
+    db_subject.is_active = False
+    db.commit()
+    db.refresh(db_subject)
+    return {
+        "message": "Subject deactivated successfully"
+    }
