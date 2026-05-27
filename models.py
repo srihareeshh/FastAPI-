@@ -25,6 +25,7 @@ class Student(Base):
     student_name = Column(String(100), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False)
+    is_active = Column(Boolean,default=True,nullable=False)
     enrollments = relationship("StudentStandard",back_populates="student")
 class StudentStandard(Base):
     __tablename__ = "student_standards"

@@ -55,6 +55,17 @@ def create_student(
     standard = db.query(Standard).filter(Standard.id == student.standard_id).first()
     if not standard:
         raise HTTPException(status_code=404,detail="Standard not found")
+    existing_student = db.query(Student).filter(
+    Student.student_name == student.student_name,
+    Student.is_active == False
+).first()
+    if existing_student:
+        existing_student.is_active = True
+        db.commit()
+        db.refresh(existing_student)
+        return {
+            "message": "Inactive student reactivated successfully"
+        }
     db_student = Student(student_name=student.student_name)
     db.add(db_student)
     db.flush()
@@ -193,7 +204,7 @@ def get_standards(
 def get_students(
     db: Session = Depends(get_db)
 ):
-    students = db.query(Student).all()
+    students = db.query(Student).filter(Student.is_active == True).all()
     return students
 @app.get("/subjects")
 def get_subjects(
@@ -365,4 +376,20 @@ def delete_subject(
     db.refresh(db_subject)
     return {
         "message": "Subject deactivated successfully"
+    }
+@app.delete("/students/{student_id}")
+def delete_student(
+    student_id: int,
+    db: Session = Depends(get_db)
+):
+    db_student = db.query(Student).filter(
+        Student.id == student_id
+    ).first()
+    if not db_student:
+        raise HTTPException(status_code=404,detail="Student not found")
+    db_student.is_active = False
+    db.commit()
+    db.refresh(db_student)
+    return {
+        "message": "Student deactivated successfully"
     }
