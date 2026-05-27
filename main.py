@@ -55,88 +55,6 @@ def create_student(
     standard = db.query(Standard).filter(Standard.id == student.standard_id).first()
     if not standard:
         raise HTTPException(status_code=404,detail="Standard not found")
-    if student.student_id:
-
-        existing_student = db.query(Student).filter(
-            Student.id == student.student_id
-        ).first()
-
-        if not existing_student:
-            raise HTTPException(
-                status_code=404,
-                detail="Student not found"
-            )
-        if existing_student.student_name != student.student_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Student name does not match student ID"
-            )
-
-        if existing_student.is_active == True:
-            raise HTTPException(
-                status_code=400,
-                detail="Student is already active"
-            )
-
-        latest_enrollment = db.query(StudentStandard).filter(
-            StudentStandard.student_id == student.student_id
-        ).order_by(
-            StudentStandard.academic_year.desc()
-        ).first()
-
-        if latest_enrollment:
-
-            latest_start_year = int(
-                latest_enrollment.academic_year.split("-")[0]
-            )
-
-            new_start_year = int(
-                student.academic_year.split("-")[0]
-            )
-
-            if new_start_year <= latest_start_year:
-
-                raise HTTPException(
-                    status_code=400,
-                    detail="Academic year must be greater than previous enrollment year"
-                )
-
-        current_enrollments = db.query(StudentStandard).filter(
-            StudentStandard.student_id == student.student_id,
-            StudentStandard.is_current == True
-        ).all()
-
-        for row in current_enrollments:
-            row.is_current = False
-
-        existing_student.is_active = True
-
-        enrollment = StudentStandard(
-            student_id=existing_student.id,
-            standard_id=student.standard_id,
-            academic_year=student.academic_year,
-            is_current=True
-        )
-
-        db.add(enrollment)
-
-        try:
-            db.commit()
-
-        except IntegrityError:
-
-            db.rollback()
-
-            raise HTTPException(
-                status_code=409,
-                detail="Student already has enrollment for this academic year"
-            )
-
-        db.refresh(existing_student)
-
-        return {
-            "message": "Inactive student reactivated successfully"
-        }
     db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
@@ -476,4 +394,51 @@ def delete_student(
     db.refresh(db_student)
     return {
         "message": "Student deactivated successfully"
+    }
+@app.put("/students/reactivate/{student_id}")
+def reactivate_student(
+    student_id: int,
+    enrollment: EnrollmentCreate,
+    db: Session = Depends(get_db)
+):
+    existing_student = db.query(Student).filter(Student.id == student_id).first()
+    if not existing_student:
+        raise HTTPException(status_code=404,detail="Student not found")
+    if existing_student.is_active == True:
+        raise HTTPException(status_code=400,detail="Student is already active")
+    standard = db.query(Standard).filter(Standard.id == enrollment.standard_id).first()
+    if not standard:
+        raise HTTPException(status_code=404,detail="Standard not found")
+    latest_enrollment = db.query(StudentStandard).filter(
+        StudentStandard.student_id == student_id
+    ).order_by(
+        StudentStandard.academic_year.desc()
+    ).first()
+    if latest_enrollment:
+        latest_start_year = int(latest_enrollment.academic_year.split("-")[0])
+        new_start_year = int(enrollment.academic_year.split("-")[0])
+        if new_start_year <= latest_start_year:
+            raise HTTPException(status_code=400,detail="Academic year must be greater than previous enrollment year")
+    current_enrollments = db.query(StudentStandard).filter(
+        StudentStandard.student_id == student_id,
+        StudentStandard.is_current == True
+    ).all()
+    for row in current_enrollments:
+        row.is_current = False
+    existing_student.is_active = True
+    new_enrollment = StudentStandard(
+        student_id=student_id,
+        standard_id=enrollment.standard_id,
+        academic_year=enrollment.academic_year,
+        is_current=True
+    )
+    db.add(new_enrollment)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
+    db.refresh(existing_student)
+    return {
+        "message": "Student reactivated successfully"
     }
