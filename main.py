@@ -287,3 +287,18 @@ def update_mark(
     db.commit()
     db.refresh(db_mark)
     return db_mark
+@app.delete("/marks/{mark_id}")
+def delete_mark(
+    mark_id: int,
+    db: Session = Depends(get_db)
+):
+    db_mark = db.query(StudentMark).filter(
+        StudentMark.id == mark_id
+    ).first()
+    if not db_mark:
+        raise HTTPException(status_code=404,detail="Mark not found")
+    db.delete(db_mark)
+    db.commit()
+    return {
+        "message": "Mark deleted successfully"
+    }
