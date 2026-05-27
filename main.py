@@ -55,32 +55,89 @@ def create_student(
     standard = db.query(Standard).filter(Standard.id == student.standard_id).first()
     if not standard:
         raise HTTPException(status_code=404,detail="Standard not found")
-    existing_student = db.query(Student).filter(
-        Student.student_name == student.student_name,
-        Student.is_active == False
-    ).first()
-    if existing_student:
-        existing_student.is_active = True
+    if student.student_id:
+
+        existing_student = db.query(Student).filter(
+            Student.id == student.student_id
+        ).first()
+
+        if not existing_student:
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found"
+            )
+        if existing_student.student_name != student.student_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Student name does not match student ID"
+            )
+
+        if existing_student.is_active == True:
+            raise HTTPException(
+                status_code=400,
+                detail="Student is already active"
+            )
+
+        latest_enrollment = db.query(StudentStandard).filter(
+            StudentStandard.student_id == student.student_id
+        ).order_by(
+            StudentStandard.academic_year.desc()
+        ).first()
+
+        if latest_enrollment:
+
+            latest_start_year = int(
+                latest_enrollment.academic_year.split("-")[0]
+            )
+
+            new_start_year = int(
+                student.academic_year.split("-")[0]
+            )
+
+            if new_start_year <= latest_start_year:
+
+                raise HTTPException(
+                    status_code=400,
+                    detail="Academic year must be greater than previous enrollment year"
+                )
+
         current_enrollments = db.query(StudentStandard).filter(
-            StudentStandard.student_id == existing_student.id,
+            StudentStandard.student_id == student.student_id,
             StudentStandard.is_current == True
         ).all()
+
         for row in current_enrollments:
             row.is_current = False
-        enrollment = StudentStandard(student_id=existing_student.id,standard_id=student.standard_id,academic_year=student.academic_year,is_current=True)
+
+        existing_student.is_active = True
+
+        enrollment = StudentStandard(
+            student_id=existing_student.id,
+            standard_id=student.standard_id,
+            academic_year=student.academic_year,
+            is_current=True
+        )
+
         db.add(enrollment)
+
         try:
             db.commit()
+
         except IntegrityError:
+
             db.rollback()
-            raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
+
+            raise HTTPException(
+                status_code=409,
+                detail="Student already has enrollment for this academic year"
+            )
+
         db.refresh(existing_student)
+
         return {
             "message": "Inactive student reactivated successfully"
         }
-    db_student = Student(
-        student_name=student.student_name
-    )
+    db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
     enrollment = StudentStandard(student_id=db_student.id,standard_id=student.standard_id,academic_year=student.academic_year,is_current=True)
@@ -101,6 +158,11 @@ def enroll_student(
         Student.id == enrollment.student_id).first()
     if not student:
         raise HTTPException(status_code=404,detail="Student not found")
+    if student.is_active == False:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot enroll inactive student"
+        )
     standard = db.query(Standard).filter(Standard.id == enrollment.standard_id).first()
     if not standard:
         raise HTTPException(status_code=404,detail="Standard not found")
@@ -198,8 +260,9 @@ def add_marks(
     if not enrollment:
         raise HTTPException(status_code=404,detail="Enrollment not found")
     subject = db.query(Subject).filter(
-        Subject.id == mark.subject_id
-    ).first()
+    Subject.id == mark.subject_id,
+    Subject.is_active == True
+).first()
     if not subject:
         raise HTTPException(status_code=404,detail="Subject not found")
     if enrollment.standard_id != subject.standard_id:
@@ -210,10 +273,7 @@ def add_marks(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Marks already entered for this subject"
-        )
+        raise HTTPException(status_code=409,detail="Marks already entered for this subject" )
     db.refresh(db_mark)
     return db_mark
 @app.get("/standards")
@@ -252,8 +312,9 @@ def get_student(
     db: Session = Depends(get_db)
 ):
     student = db.query(Student).filter(
-        Student.id == student_id
-    ).first()
+    Student.id == student_id,
+    Student.is_active == True
+).first()
     if not student:
         raise HTTPException(
             status_code=404,
@@ -280,8 +341,9 @@ def get_subject(
     db: Session = Depends(get_db)
 ):
     subject = db.query(Subject).filter(
-        Subject.id == subject_id
-    ).first()
+    Subject.id == subject_id,
+    Subject.is_active == True
+).first()
     if not subject:
         raise HTTPException(
             status_code=404,

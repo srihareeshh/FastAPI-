@@ -25,6 +25,7 @@ class EnrollmentCreate(BaseModel):
             raise ValueError("Academic year must span exactly one year")
         return v
 class StudentCreate(BaseModel):
+    student_id: Optional[int] = None
     student_name: str
     standard_id: int
     academic_year: str
