@@ -101,6 +101,19 @@ def enroll_student(
     ).first()
     if existing_year_enrollment:
         raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
+    latest_enrollment = db.query(StudentStandard).filter(StudentStandard.student_id == enrollment.student_id).order_by(StudentStandard.academic_year.desc()).first()
+    if latest_enrollment:
+        latest_start_year = int(
+            latest_enrollment.academic_year.split("-")[0]
+        )
+        new_start_year = int(
+            enrollment.academic_year.split("-")[0]
+        )
+        if new_start_year <= latest_start_year:
+            raise HTTPException(
+                status_code=400,
+                detail="Academic year must be greater than previous enrollment year"
+            )
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == enrollment.student_id,
         StudentStandard.is_current == True
