@@ -49,32 +49,41 @@ def create_standard(
     return db_standard
 @app.post("/students")
 def create_student(
-    student: StudentCreate,    
+    student: StudentCreate,
     db: Session = Depends(get_db)
 ):
     standard = db.query(Standard).filter(Standard.id == student.standard_id).first()
     if not standard:
         raise HTTPException(status_code=404,detail="Standard not found")
     existing_student = db.query(Student).filter(
-    Student.student_name == student.student_name,
-    Student.is_active == False
-).first()
+        Student.student_name == student.student_name,
+        Student.is_active == False
+    ).first()
     if existing_student:
         existing_student.is_active = True
-        db.commit()
+        current_enrollments = db.query(StudentStandard).filter(
+            StudentStandard.student_id == existing_student.id,
+            StudentStandard.is_current == True
+        ).all()
+        for row in current_enrollments:
+            row.is_current = False
+        enrollment = StudentStandard(student_id=existing_student.id,standard_id=student.standard_id,academic_year=student.academic_year,is_current=True)
+        db.add(enrollment)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
         db.refresh(existing_student)
         return {
             "message": "Inactive student reactivated successfully"
         }
-    db_student = Student(student_name=student.student_name)
+    db_student = Student(
+        student_name=student.student_name
+    )
     db.add(db_student)
     db.flush()
-    enrollment = StudentStandard(
-        student_id=db_student.id,
-        standard_id=student.standard_id,
-        academic_year=student.academic_year,
-        is_current=True
-    )
+    enrollment = StudentStandard(student_id=db_student.id,standard_id=student.standard_id,academic_year=student.academic_year,is_current=True)
     db.add(enrollment)
     try:
         db.commit()
