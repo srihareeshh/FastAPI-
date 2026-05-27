@@ -41,3 +41,5 @@ class MarkUpdate(BaseModel):
         return v
 class StudentUpdate(BaseModel):
     student_name: str
+class SubjectUpdate(BaseModel):
+    subject_name: str

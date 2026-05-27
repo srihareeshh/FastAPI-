@@ -17,7 +17,8 @@ from schemas import (
     SubjectCreate,
     MarkCreate,
     MarkUpdate,
-    StudentUpdate
+    StudentUpdate,
+    SubjectUpdate
 )
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -318,3 +319,22 @@ def update_student(
     db.commit()
     db.refresh(db_student)
     return db_student
+@app.put("/subjects/{subject_id}")
+def update_subject(
+    subject_id: int,
+    updated_subject: SubjectUpdate,
+    db: Session = Depends(get_db)
+):
+    db_subject = db.query(Subject).filter(
+        Subject.id == subject_id
+    ).first()
+    if not db_subject:
+        raise HTTPException(status_code=404,detail="Subject not found")
+    db_subject.subject_name = updated_subject.subject_name
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409,detail="Subject already exists for this standard")
+    db.refresh(db_subject)
+    return db_subject
