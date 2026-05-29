@@ -11,10 +11,10 @@ class StandardCreate(BaseModel):
 class EnrollmentCreate(BaseModel):
     student_id: int
     standard_id: int
-    academic_year: int
-    @field_validator("academic_year")
+    start_year: int
+    @field_validator("start_year")
     @classmethod
-    def validate_academic_year(cls, v):
+    def validate_start_year(cls, v):
 
         if v < 2000:
             raise ValueError(
@@ -25,10 +25,10 @@ class EnrollmentCreate(BaseModel):
 class StudentCreate(BaseModel):
     student_name: str
     standard_id: int
-    academic_year: int
-    @field_validator("academic_year")
+    start_year: int
+    @field_validator("start_year")
     @classmethod
-    def validate_academic_year(cls, v):
+    def validate_start_year(cls, v):
 
         if v < 2000:
             raise ValueError(
@@ -65,4 +65,4 @@ class SubjectUpdate(BaseModel):
     subject_name: str
 class ReactivateStudent(BaseModel):
     standard_id: int
-    academic_year: str
+    start_year: str
