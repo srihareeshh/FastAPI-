@@ -61,6 +61,13 @@ def get_enrollment(
     if not enrollment:
         raise HTTPException(status_code=404,detail="Enrollment not found")
     return enrollment
+def build_academic_year(
+    start_year: int
+):
+    return (
+        f"{start_year}-"
+        f"{start_year + 1}"
+    )
 @app.post("/standards")
 def create_standard(
     standard: StandardCreate,
@@ -89,7 +96,7 @@ def create_student(
     db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
-    enrollment = StudentStandard(student_id=db_student.id,standard_id=student.standard_id,academic_year=student.academic_year,is_current=True)
+    enrollment = StudentStandard(student_id=db_student.id,standard_id=student.standard_id,academic_year=build_academic_year(student.start_year),is_current=True)
     db.add(enrollment)
     try:
         db.commit()
@@ -110,25 +117,15 @@ def enroll_student(
             detail="Cannot enroll inactive student"
         )
     standard = get_standard(enrollment.standard_id,db)
+    new_academic_year = build_academic_year(enrollment.start_year)
     existing_year_enrollment = db.query(StudentStandard).filter(
-        StudentStandard.student_id == enrollment.student_id,
-        StudentStandard.academic_year == enrollment.academic_year
-    ).first()
+    StudentStandard.student_id == enrollment.student_id,
+    StudentStandard.academic_year == new_academic_year).first()
     if existing_year_enrollment:
         raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
     latest_enrollment = db.query(StudentStandard).filter(StudentStandard.student_id == enrollment.student_id).order_by(StudentStandard.academic_year.desc()).first()
-    if latest_enrollment:
-        latest_start_year = int(
-            latest_enrollment.academic_year.split("-")[0]
-        )
-        new_start_year = int(
-            enrollment.academic_year.split("-")[0]
-        )
-        if new_start_year <= latest_start_year:
-            raise HTTPException(
-                status_code=400,
-                detail="Academic year must be greater than previous enrollment year"
-            )
+    if enrollment.start_year <= int(latest_enrollment.academic_year.split("-")[0]):
+        raise HTTPException(status_code=400,detail="Academic year must be greater than previous enrollment year")
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == enrollment.student_id,
         StudentStandard.is_current == True
@@ -138,7 +135,7 @@ def enroll_student(
     new_enrollment = StudentStandard(
         student_id=enrollment.student_id,
         standard_id=enrollment.standard_id,
-        academic_year=enrollment.academic_year,
+        academic_year=build_academic_year(enrollment.start_year),
         is_current=True
     )
     db.add(new_enrollment)
@@ -437,11 +434,11 @@ def reactivate_student(
     ).first()
     if latest_enrollment:
         latest_start_year = int(latest_enrollment.academic_year.split("-")[0])
-        new_start_year = int(enrollment.academic_year.split("-")[0])
+        new_start_year = enrollment.start_year
         if new_start_year <= latest_start_year:
             raise HTTPException(status_code=400,detail="Academic year must be greater than previous enrollment year")
-        if enrollment.standard_id <= latest_enrollment.standard_id:
-            raise HTTPException(status_code=400,detail="Student cannot be enrolled in lower or same standard")
+        if enrollment.standard_id < latest_enrollment.standard_id:
+            raise HTTPException(status_code=400,detail="Student cannot be enrolled in a lower standard")
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == student_id,
         StudentStandard.is_current == True
@@ -452,7 +449,7 @@ def reactivate_student(
     new_enrollment = StudentStandard(
         student_id=student_id,
         standard_id=enrollment.standard_id,
-        academic_year=enrollment.academic_year,
+        academic_year=build_academic_year(enrollment.start_year),
         is_current=True
     )
     db.add(new_enrollment)

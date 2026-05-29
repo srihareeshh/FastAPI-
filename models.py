@@ -32,7 +32,7 @@ class StudentStandard(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer,ForeignKey("students.id"),nullable=False)
     standard_id = Column(Integer,ForeignKey("standards.id"),nullable=False)
-    academic_year = Column(String(20),nullable=False)
+    academic_year = Column(Integer,nullable=False)
     is_current = Column(Boolean,default=True,nullable=False)
     enrolled_at = Column(DateTime,server_default=func.now(),nullable=False)
     student = relationship("Student",back_populates="enrollments")

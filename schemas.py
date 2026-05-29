@@ -11,34 +11,30 @@ class StandardCreate(BaseModel):
 class EnrollmentCreate(BaseModel):
     student_id: int
     standard_id: int
-    academic_year: str
+    academic_year: int
     @field_validator("academic_year")
     @classmethod
     def validate_academic_year(cls, v):
-        try:
-            start_year, end_year = map(int,v.split("-"))
-        except:
-            raise ValueError("Academic year must be in format YYYY-YYYY")
-        if start_year >= end_year:
-            raise ValueError("Academic year end must be greater than start year")
-        if end_year - start_year != 1:
-            raise ValueError("Academic year must span exactly one year")
+
+        if v < 2000:
+            raise ValueError(
+                "Academic year must be 2000 or later"
+            )
+
         return v
 class StudentCreate(BaseModel):
     student_name: str
     standard_id: int
-    academic_year: str
+    academic_year: int
     @field_validator("academic_year")
     @classmethod
     def validate_academic_year(cls, v):
-        try:
-            start_year, end_year = map(int,v.split("-"))
-        except:
-            raise ValueError("Academic year must be in format YYYY-YYYY")
-        if start_year >= end_year:
-            raise ValueError("Academic year end must be greater than start year")
-        if end_year - start_year != 1:
-            raise ValueError("Academic year must span exactly one year")
+
+        if v < 2000:
+            raise ValueError(
+                "Academic year must be 2000 or later"
+            )
+
         return v
 class SubjectCreate(BaseModel):
     subject_name: str
