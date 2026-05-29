@@ -29,6 +29,38 @@ def get_db():
         yield db
     finally:
         db.close()
+def get_student(
+    student_id: int,
+    db: Session
+):
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404,detail="Student not found")
+    return student
+def get_standard(
+    standard_id: int,
+    db: Session
+):
+    standard = db.query(Standard).filter(Standard.id == standard_id).first()
+    if not standard:
+        raise HTTPException(status_code=404,detail="Standard not found")
+    return standard
+def get_subject(
+    subject_id: int,
+    db: Session
+):
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status_code=404,detail="Subject not found")
+    return subject
+def get_enrollment(
+    enrollment_id: int,
+    db: Session
+):
+    enrollment = db.query(StudentStandard).filter(StudentStandard.id == enrollment_id).first()
+    if not enrollment:
+        raise HTTPException(status_code=404,detail="Enrollment not found")
+    return enrollment
 @app.post("/standards")
 def create_standard(
     standard: StandardCreate,
@@ -53,9 +85,7 @@ def create_student(
     student: StudentCreate,
     db: Session = Depends(get_db)
 ):
-    standard = db.query(Standard).filter(Standard.id == student.standard_id).first()
-    if not standard:
-        raise HTTPException(status_code=404,detail="Standard not found")
+    standard = get_standard(student.standard_id,db)
     db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
@@ -73,18 +103,13 @@ def enroll_student(
     enrollment: EnrollmentCreate,
     db: Session = Depends(get_db)
 ):
-    student = db.query(Student).filter(
-        Student.id == enrollment.student_id).first()
-    if not student:
-        raise HTTPException(status_code=404,detail="Student not found")
+    student = get_student(enrollment.student_id,db)
     if student.is_active == False:
         raise HTTPException(
             status_code=400,
             detail="Cannot enroll inactive student"
         )
-    standard = db.query(Standard).filter(Standard.id == enrollment.standard_id).first()
-    if not standard:
-        raise HTTPException(status_code=404,detail="Standard not found")
+    standard = get_standard(enrollment.standard_id,db)
     existing_year_enrollment = db.query(StudentStandard).filter(
         StudentStandard.student_id == enrollment.student_id,
         StudentStandard.academic_year == enrollment.academic_year
@@ -136,14 +161,7 @@ def create_subject(
     subject: SubjectCreate,
     db: Session = Depends(get_db)
 ):
-    standard = db.query(Standard).filter(
-        Standard.id == subject.standard_id
-    ).first()
-    if not standard:
-        raise HTTPException(
-            status_code=404,
-            detail="Standard not found"
-        )
+    standard = get_standard(subject.standard_id,db)
     existing_subject = db.query(Subject).filter(
     Subject.subject_name == subject.subject_name,
     Subject.standard_id == subject.standard_id,
@@ -173,17 +191,8 @@ def add_marks(
     mark: MarkCreate,
     db: Session = Depends(get_db)
 ):
-    enrollment = db.query(StudentStandard).filter(
-        StudentStandard.id == mark.student_standard_id
-    ).first()
-    if not enrollment:
-        raise HTTPException(status_code=404,detail="Enrollment not found")
-    subject = db.query(Subject).filter(
-    Subject.id == mark.subject_id,
-    Subject.is_active == True
-).first()
-    if not subject:
-        raise HTTPException(status_code=404,detail="Subject not found")
+    enrollment = get_enrollment(mark.student_standard_id,db)
+    subject = get_subject(mark.subject_id,db)
     if enrollment.standard_id != subject.standard_id:
         raise HTTPException(status_code=400,detail="Subject does not belong to student's standard")
     db_mark = StudentMark(student_standard_id=mark.student_standard_id,subject_id=mark.subject_id,marks=mark.marks)
