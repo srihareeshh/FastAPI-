@@ -462,3 +462,40 @@ def reactivate_student(
     return {
         "message": "Student reactivated successfully"
     }
+@app.get("/students/{student_id}/report")
+def get_student_report(
+    student_id: int,
+    db: Session = Depends(get_db)
+):
+    student = get_student(student_id, db)
+    current_enrollment = db.query(StudentStandard).filter(
+        StudentStandard.student_id == student_id,
+        StudentStandard.is_current == True
+    ).first()
+    if not current_enrollment:
+        raise HTTPException(status_code=404,detail="No active enrollment found")
+    standard = get_standard(current_enrollment.standard_id,db)
+    marks = db.query(StudentMark).filter(StudentMark.student_standard_id == current_enrollment.id).all()
+    subject_report = []
+    total = 0
+    for mark in marks:
+        subject = get_subject(mark.subject_id,db)
+        subject_report.append(
+            {
+                "subject": subject.subject_name,
+                "marks": mark.marks
+            }
+        )
+        total += mark.marks
+    average = 0
+    if len(marks) > 0:
+        average = total / len(marks)
+    return {
+        "student_id": student.id,
+        "student_name": student.student_name,
+        "standard": standard.std_name,
+        "academic_year": current_enrollment.academic_year,
+        "subjects": subject_report,
+        "total": total,
+        "average": average
+    }
