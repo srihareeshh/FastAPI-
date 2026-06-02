@@ -68,7 +68,7 @@ def build_academic_year(
         f"{start_year}-"
         f"{start_year + 1}"
     )
-@app.post("/standards")
+@app.post("/standards",tags=["Standards"])
 def create_standard(
     standard: StandardCreate,
     db: Session = Depends(get_db)
@@ -87,7 +87,7 @@ def create_standard(
         )
     db.refresh(db_standard)
     return db_standard
-@app.post("/students")
+@app.post("/students",tags=["Students"])
 def create_student(
     student: StudentCreate,
     db: Session = Depends(get_db)
@@ -105,7 +105,7 @@ def create_student(
         raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
     db.refresh(db_student)
     return db_student
-@app.post("/enrollments")
+@app.post("/enrollments",tags=["Enrollments"])
 def enroll_student(
     enrollment: EnrollmentCreate,
     db: Session = Depends(get_db)
@@ -153,7 +153,7 @@ def enroll_student(
         "academic_year": new_enrollment.academic_year,
         "is_current": new_enrollment.is_current
     }
-@app.post("/subjects")
+@app.post("/subjects",tags=["Subjects"])
 def create_subject(
     subject: SubjectCreate,
     db: Session = Depends(get_db)
@@ -183,7 +183,7 @@ def create_subject(
         )
     db.refresh(db_subject)
     return db_subject
-@app.post("/marks")
+@app.post("/marks",tags=["Marks"])
 def add_marks(
     mark: MarkCreate,
     db: Session = Depends(get_db)
@@ -201,37 +201,37 @@ def add_marks(
         raise HTTPException(status_code=409,detail="Marks already entered for this subject" )
     db.refresh(db_mark)
     return db_mark
-@app.get("/standards")
+@app.get("/standards",tags=["Standards"])
 def get_standards(
     db: Session = Depends(get_db)
 ):
     standards = db.query(Standard).all()
     return standards
-@app.get("/students")
+@app.get("/students",tags=["Students"])
 def get_students(
     db: Session = Depends(get_db)
 ):
     students = db.query(Student).filter(Student.is_active == True).all()
     return students
-@app.get("/subjects")
+@app.get("/subjects",tags=["Subjects"])
 def get_subjects(
     db: Session = Depends(get_db)
 ):
     subjects = db.query(Subject).filter(Subject.is_active == True).all()
     return subjects
-@app.get("/enrollments")
+@app.get("/enrollments",tags=["Enrollments"])
 def get_enrollments(
     db: Session = Depends(get_db)
 ):
     enrollments = db.query(StudentStandard).all()
     return enrollments
-@app.get("/marks")
+@app.get("/marks",tags=["Marks"])
 def get_marks(
     db: Session = Depends(get_db)
 ):
     marks = db.query(StudentMark).all()
     return marks
-@app.get("/students/{student_id}")
+@app.get("/students/{student_id}",tags=["Students"])
 def get_student(
     student_id: int,
     db: Session = Depends(get_db)
@@ -246,7 +246,7 @@ def get_student(
             detail="Student not found"
         )
     return student
-@app.get("/standards/{standard_id}")
+@app.get("/standards/{standard_id}",tags=["Standards"])
 def get_standard(
     standard_id: int,
     db: Session = Depends(get_db)
@@ -260,7 +260,7 @@ def get_standard(
             detail="Standard not found"
         )
     return standard
-@app.get("/subjects/{subject_id}")
+@app.get("/subjects/{subject_id}",tags=["Subjects"])
 def get_subject(
     subject_id: int,
     db: Session = Depends(get_db)
@@ -275,7 +275,7 @@ def get_subject(
             detail="Subject not found"
         )
     return subject
-@app.get("/enrollments/{enrollment_id}")
+@app.get("/enrollments/{enrollment_id}",tags=["Enrollments"])
 def get_enrollment(
     enrollment_id: int,
     db: Session = Depends(get_db)
@@ -289,7 +289,7 @@ def get_enrollment(
             detail="Enrollment not found"
         )
     return enrollment
-@app.get("/marks/{mark_id}")
+@app.get("/marks/{mark_id}",tags=["Marks"])
 def get_mark(
     mark_id: int,
     db: Session = Depends(get_db)
@@ -303,7 +303,7 @@ def get_mark(
             detail="Mark not found"
         )
     return mark
-@app.put("/marks/{mark_id}")
+@app.put("/marks/{mark_id}",tags=["Marks"])
 def update_mark(
     mark_id: int,
     updated_mark: MarkUpdate,
@@ -321,7 +321,7 @@ def update_mark(
     db.commit()
     db.refresh(db_mark)
     return db_mark
-@app.delete("/marks/{mark_id}")
+@app.delete("/marks/{mark_id}",tags=["Marks"])
 def delete_mark(
     mark_id: int,
     db: Session = Depends(get_db)
@@ -336,7 +336,7 @@ def delete_mark(
     return {
         "message": "Mark deleted successfully"
     }
-@app.put("/students/{student_id}")
+@app.put("/students/{student_id}",tags=["Students"])
 def update_student(
     student_id: int,
     updated_student: StudentUpdate,
@@ -353,7 +353,7 @@ def update_student(
     db.commit()
     db.refresh(db_student)
     return db_student
-@app.put("/subjects/{subject_id}")
+@app.put("/subjects/{subject_id}",tags=["Subjects"])
 def update_subject(
     subject_id: int,
     updated_subject: SubjectUpdate,
@@ -374,7 +374,7 @@ def update_subject(
         raise HTTPException(status_code=409,detail="Subject already exists for this standard")
     db.refresh(db_subject)
     return db_subject
-@app.delete("/subjects/{subject_id}")
+@app.delete("/subjects/{subject_id}",tags=["Subjects"])
 def delete_subject(
     subject_id: int,
     db: Session = Depends(get_db)
@@ -390,7 +390,7 @@ def delete_subject(
     return {
         "message": "Subject deactivated successfully"
     }
-@app.delete("/students/{student_id}")
+@app.delete("/students/{student_id}",tags=["Students"])
 def delete_student(
     student_id: int,
     db: Session = Depends(get_db)
@@ -413,7 +413,7 @@ def delete_student(
     return {
         "message": "Student deactivated successfully"
     }
-@app.put("/students/reactivate/{student_id}")
+@app.put("/students/reactivate/{student_id}",tags=["Students"])
 def reactivate_student(
     student_id: int,
     enrollment: ReactivateStudent,
@@ -462,7 +462,7 @@ def reactivate_student(
     return {
         "message": "Student reactivated successfully"
     }
-@app.get("/students/{student_id}/report")
+@app.get("/students/{student_id}/report",tags=["Students"])
 def get_student_report(
     student_id: int,
     db: Session = Depends(get_db)
