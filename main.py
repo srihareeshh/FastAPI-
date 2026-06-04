@@ -25,12 +25,10 @@ from schemas import (
 )
 import cloudinary
 cloudinary.config(
-    cloud_name="dr6gdhwwx",
-    api_key="899359478986899",
-    api_secret="RW01H-1Jpkvlmic7lzXYLbFyo_Q"
+    cloud_name="",
+    api_key="",
+    api_secret="****"
 )
-print(cloudinary.config().cloud_name)
-print(cloudinary.config().api_key)
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 def get_db():
