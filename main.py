@@ -508,5 +508,16 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
     student = get_student(student_id,db)
     upload_result = cloudinary.uploader.upload(image.file,folder="students")
     student.profile_image = (upload_result["secure_url"])
+    allowed_types = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+]
+
+    if image.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Only JPG, PNG and WEBP images are allowed"
+        )
     db.commit()
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
