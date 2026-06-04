@@ -506,18 +506,25 @@ def get_student_report(
 @app.post("/students/{student_id}/profile-image",tags=["Students"])
 def upload_student_image(student_id: int,image: UploadFile = File(...),db: Session = Depends(get_db)):
     student = get_student(student_id,db)
-    upload_result = cloudinary.uploader.upload(image.file,folder=f"students/{student_id}")
-    student.profile_image = (upload_result["secure_url"])
     allowed_types = [
     "image/jpeg",
     "image/png",
     "image/webp"
 ]
-
     if image.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400,
-            detail="Only JPG, PNG and WEBP images are allowed"
+        raise HTTPException(status_code=400,detail="Only JPG, PNG and WEBP images are allowed")
+    try:
+        upload_result = cloudinary.uploader.upload(
+            image.file,
+            folder=f"students/{student_id}"
         )
-    db.commit()
+    except Exception:
+        raise HTTPException(status_code=500,detail="Failed to upload image")
+    student.profile_image = (upload_result["secure_url"])
+    try:
+        db.commit()
+        db.refresh(student)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500,detail="Failed to save image URL")
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
