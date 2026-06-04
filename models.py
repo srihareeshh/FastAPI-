@@ -26,6 +26,7 @@ class Student(Base, TimestampMixin):
     student_name = Column(String(100), nullable=False)
     is_active = Column(Boolean,default=True,nullable=False)
     enrollments = relationship("StudentStandard",back_populates="student")
+    profile_image = Column(String(500),nullable=True)
 class StudentStandard(Base, TimestampMixin):
     __tablename__ = "student_standards"
     __table_args__ = (UniqueConstraint("student_id","academic_year",name="unique_student_academic_year"),)

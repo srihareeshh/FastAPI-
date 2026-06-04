@@ -2,6 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
+from fastapi import UploadFile, File
+import cloudinary.uploader
 from models import (
     Base,
     Standard,
@@ -21,6 +23,14 @@ from schemas import (
     SubjectUpdate,
     ReactivateStudent
 )
+import cloudinary
+cloudinary.config(
+    cloud_name="dr6gdhwwx",
+    api_key="899359478986899",
+    api_secret="RW01H-1Jpkvlmic7lzXYLbFyo_Q"
+)
+print(cloudinary.config().cloud_name)
+print(cloudinary.config().api_key)
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 def get_db():
@@ -493,3 +503,10 @@ def get_student_report(
         "total": total,
         "average": average
     }
+@app.post("/students/{student_id}/profile-image",tags=["Students"])
+def upload_student_image(student_id: int,image: UploadFile = File(...),db: Session = Depends(get_db)):
+    student = get_student(student_id,db)
+    upload_result = cloudinary.uploader.upload(image.file,folder="students")
+    student.profile_image = (upload_result["secure_url"])
+    db.commit()
+    return {"message": "Image uploaded successfully","image_url": student.profile_image}
