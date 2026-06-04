@@ -506,7 +506,7 @@ def get_student_report(
 @app.post("/students/{student_id}/profile-image",tags=["Students"])
 def upload_student_image(student_id: int,image: UploadFile = File(...),db: Session = Depends(get_db)):
     student = get_student(student_id,db)
-    upload_result = cloudinary.uploader.upload(image.file,folder="students")
+    upload_result = cloudinary.uploader.upload(image.file,folder=f"students/{student_id}")
     student.profile_image = (upload_result["secure_url"])
     allowed_types = [
     "image/jpeg",
