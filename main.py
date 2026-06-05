@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from fastapi import UploadFile, File
 import cloudinary.uploader
+from passlib.context import CryptContext
 from models import User
 from models import (
     Base,
@@ -32,6 +33,7 @@ cloudinary.config(
 )
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
+pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 def get_db():
     db = SessionLocal()
     try:
@@ -60,6 +62,10 @@ def build_academic_year(
         f"{start_year}-"
         f"{start_year + 1}"
     )
+def hash_password(password: str):
+    return pwd_context.hash(password)
+def verify_password(plain_password: str,hashed_password: str):
+    return pwd_context.verify(plain_password,hashed_password)
 @app.post("/standards",tags=["Standards"],summary="Create a standard")
 def create_standard(
     standard: StandardCreate,
