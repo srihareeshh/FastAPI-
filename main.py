@@ -6,6 +6,9 @@ from fastapi import UploadFile, File
 import cloudinary.uploader
 from passlib.context import CryptContext
 from jose import jwt
+from jose import JWTError
+from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
@@ -28,8 +31,7 @@ from schemas import (
     StudentUpdate,
     SubjectUpdate,
     ReactivateStudent,
-    UserCreate,
-    LoginRequest
+    UserCreate
 )
 import cloudinary
 cloudinary.config(
@@ -43,6 +45,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 app = FastAPI()
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="login"
+)
 pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 def get_db():
     db = SessionLocal()
@@ -85,6 +90,21 @@ def create_access_token(data: dict):
         }
     )
     return jwt.encode(to_encode,SECRET_KEY,algorithm=ALGORITHM)
+def get_current_user(
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        payload = jwt.decode(token,SECRET_KEY,algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        role = payload.get("role")
+        if username is None:
+            raise HTTPException(status_code=401,detail="Invalid token")
+        return {
+            "username": username,
+            "role": role
+        }
+    except JWTError:
+        raise HTTPException(status_code=401,detail="Invalid token")
 @app.post("/standards",tags=["Standards"],summary="Create a standard")
 def create_standard(
     standard: StandardCreate,
@@ -488,13 +508,13 @@ def create_user(user: UserCreate,db: Session = Depends(get_db)):
         "message": "User created successfully"
     }
 @app.post("/login",tags=["Authentication"],summary="Login user")
-def login(credentials: LoginRequest,db: Session = Depends(get_db)):
+def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
     user = db.query(User).filter(
-        User.username == credentials.username
+        User.username == form_data.username
     ).first()
     if not user:
         raise HTTPException(status_code=401,detail="Invalid username or password")
-    if not verify_password(credentials.password,user.password_hash):
+    if not verify_password(form_data.password,user.password_hash):
         raise HTTPException(status_code=401,detail="Invalid username or password")
     token = create_access_token(
         {
@@ -506,3 +526,8 @@ def login(credentials: LoginRequest,db: Session = Depends(get_db)):
         "access_token": token,
         "token_type": "bearer"
     }
+@app.get("/me",tags=["Authentication"])
+def get_me(
+    current_user = Depends(get_current_user)
+):
+    return current_user
