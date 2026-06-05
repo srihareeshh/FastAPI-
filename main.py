@@ -37,38 +37,21 @@ def get_db():
         yield db
     finally:
         db.close()
-def get_student(
-    student_id: int,
-    db: Session
-):
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404,detail="Student not found")
-    return student
-def get_standard(
-    standard_id: int,
-    db: Session
-):
-    standard = db.query(Standard).filter(Standard.id == standard_id).first()
-    if not standard:
-        raise HTTPException(status_code=404,detail="Standard not found")
-    return standard
-def get_subject(
-    subject_id: int,
-    db: Session
-):
-    subject = db.query(Subject).filter(Subject.id == subject_id).first()
-    if not subject:
-        raise HTTPException(status_code=404,detail="Subject not found")
-    return subject
-def get_enrollment(
-    enrollment_id: int,
-    db: Session
-):
-    enrollment = db.query(StudentStandard).filter(StudentStandard.id == enrollment_id).first()
-    if not enrollment:
-        raise HTTPException(status_code=404,detail="Enrollment not found")
-    return enrollment
+def get_or_404(model,obj_id: int,db: Session,entity_name: str):
+    obj = db.query(model).filter(model.id == obj_id).first()
+    if not obj:
+        raise HTTPException(status_code=404,detail=f"{entity_name} not found")
+    return obj
+def get_student(student_id: int,db: Session):
+    return get_or_404(Student,student_id,db,"Student")
+def get_standard(standard_id: int,db: Session):
+    return get_or_404(Standard,standard_id,db,"Standard")
+def get_subject(subject_id: int,db: Session):
+    return get_or_404(Subject,subject_id,db,"Subject")
+def get_enrollment(enrollment_id: int,db: Session):
+    return get_or_404(StudentStandard,enrollment_id,db,"Enrollment")
+def get_mark(mark_id: int,db: Session):
+    return get_or_404(StudentMark,mark_id,db,"Mark")
 def build_academic_year(
     start_year: int
 ):
@@ -100,7 +83,7 @@ def create_student(
     student: StudentCreate,
     db: Session = Depends(get_db)
 ):
-    standard = get_standard(student.standard_id,db)
+    get_standard(student.standard_id,db)
     db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
@@ -124,7 +107,7 @@ def enroll_student(
             status_code=400,
             detail="Cannot enroll inactive student"
         )
-    standard = get_standard(enrollment.standard_id,db)
+    get_standard(enrollment.standard_id,db)
     new_academic_year = build_academic_year(enrollment.start_year)
     existing_year_enrollment = db.query(StudentStandard).filter(
     StudentStandard.student_id == enrollment.student_id,
@@ -132,8 +115,10 @@ def enroll_student(
     if existing_year_enrollment:
         raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
     latest_enrollment = db.query(StudentStandard).filter(StudentStandard.student_id == enrollment.student_id).order_by(StudentStandard.academic_year.desc()).first()
-    if enrollment.start_year <= int(latest_enrollment.academic_year.split("-")[0]):
-        raise HTTPException(status_code=400,detail="Academic year must be greater than previous enrollment year")
+    if latest_enrollment:
+        latest_start_year = int(latest_enrollment.academic_year.split("-")[0])
+        if enrollment.start_year <= latest_start_year:
+            raise HTTPException(status_code=400,detail="Academic year must be greater than previous enrollment year")
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == enrollment.student_id,
         StudentStandard.is_current == True
@@ -166,7 +151,7 @@ def create_subject(
     subject: SubjectCreate,
     db: Session = Depends(get_db)
 ):
-    standard = get_standard(subject.standard_id,db)
+    get_standard(subject.standard_id,db)
     existing_subject = db.query(Subject).filter(
     Subject.subject_name == subject.subject_name,
     Subject.standard_id == subject.standard_id,
@@ -186,9 +171,7 @@ def create_subject(
     except IntegrityError:
         db.rollback()
         raise HTTPException(
-            status_code=409,
-            detail="Subject already exists for this standard"
-        )
+            status_code=409,detail="Subject already exists for this standard")
     db.refresh(db_subject)
     return db_subject
 @app.post("/marks",tags=["Marks"],summary="Add marks")
@@ -240,85 +223,48 @@ def get_marks(
     marks = db.query(StudentMark).all()
     return marks
 @app.get("/students/{student_id}",tags=["Students"],summary="Get student by ID")
-def get_student(
+def get_student_by_id(
     student_id: int,
     db: Session = Depends(get_db)
 ):
-    student = db.query(Student).filter(
-    Student.id == student_id,
-    Student.is_active == True
-).first()
-    if not student:
-        raise HTTPException(
-            status_code=404,
-            detail="Student not found"
-        )
+    student = get_student(student_id,db)
+    if not student.is_active:
+        raise HTTPException(status_code=404,detail="Student not found")
     return student
 @app.get("/standards/{standard_id}",tags=["Standards"],summary="Get standard by ID")
-def get_standard(
+def get_standard_by_id(
     standard_id: int,
     db: Session = Depends(get_db)
 ):
-    standard = db.query(Standard).filter(
-        Standard.id == standard_id
-    ).first()
-    if not standard:
-        raise HTTPException(
-            status_code=404,
-            detail="Standard not found"
-        )
-    return standard
+    return get_standard(standard_id,db)
 @app.get("/subjects/{subject_id}",tags=["Subjects"],summary="Get subject by ID")
-def get_subject(
+def get_subject_by_id(
     subject_id: int,
     db: Session = Depends(get_db)
 ):
-    subject = db.query(Subject).filter(
-    Subject.id == subject_id,
-    Subject.is_active == True
-).first()
-    if not subject:
-        raise HTTPException(
-            status_code=404,
-            detail="Subject not found"
-        )
+    subject=get_subject(subject_id,db)
+    if not subject.is_active:
+        raise HTTPException(status_code=404,detail="Subject not found")
     return subject
 @app.get("/enrollments/{enrollment_id}",tags=["Enrollments"],summary="Get enrollment by ID")
-def get_enrollment(
+def get_enrollment_by_id(
     enrollment_id: int,
     db: Session = Depends(get_db)
 ):
-    enrollment = db.query(StudentStandard).filter(
-        StudentStandard.id == enrollment_id
-    ).first()
-    if not enrollment:
-        raise HTTPException(
-            status_code=404,
-            detail="Enrollment not found"
-        )
-    return enrollment
+    return get_enrollment(enrollment_id,db)
 @app.get("/marks/{mark_id}",tags=["Marks"],summary="Get mark by ID")
-def get_mark(
+def get_mark_by_id(
     mark_id: int,
     db: Session = Depends(get_db)
 ):
-    mark = db.query(StudentMark).filter(
-        StudentMark.id == mark_id
-    ).first()
-    if not mark:
-        raise HTTPException(status_code=404,detail="Mark not found")
-    return mark
+    return get_mark(mark_id,db)
 @app.put("/marks/{mark_id}",tags=["Marks"],summary="Update marks")
 def update_mark(
     mark_id: int,
     updated_mark: MarkUpdate,
     db: Session = Depends(get_db)
 ):
-    db_mark = db.query(StudentMark).filter(
-        StudentMark.id == mark_id
-    ).first()
-    if not db_mark:
-        raise HTTPException(status_code=404,detail="Mark not found")
+    db_mark = get_mark(mark_id,db)
     db_mark.marks = updated_mark.marks
     db.commit()
     db.refresh(db_mark)
@@ -328,11 +274,7 @@ def delete_mark(
     mark_id: int,
     db: Session = Depends(get_db)
 ):
-    db_mark = db.query(StudentMark).filter(
-        StudentMark.id == mark_id
-    ).first()
-    if not db_mark:
-        raise HTTPException(status_code=404,detail="Mark not found")
+    db_mark = get_mark(mark_id,db)
     db.delete(db_mark)
     db.commit()
     return {
@@ -344,11 +286,7 @@ def update_student(
     updated_student: StudentUpdate,
     db: Session = Depends(get_db)
 ):
-    db_student = db.query(Student).filter(
-        Student.id == student_id
-    ).first()
-    if not db_student:
-        raise HTTPException(status_code=404,detail="Student not found")
+    db_student = get_student(student_id,db)
     if db_student.is_active == False:
         raise HTTPException(status_code=400,detail="Cannot update inactive student")
     db_student.student_name = updated_student.student_name
@@ -361,11 +299,7 @@ def update_subject(
     updated_subject: SubjectUpdate,
     db: Session = Depends(get_db)
 ):
-    db_subject = db.query(Subject).filter(
-        Subject.id == subject_id
-    ).first()
-    if not db_subject:
-        raise HTTPException(status_code=404,detail="Subject not found")
+    db_subject = get_subject(subject_id,db)
     if db_subject.is_active == False:
         raise HTTPException(status_code=400,detail="Cannot update inactive subject")
     db_subject.subject_name = updated_subject.subject_name
@@ -381,11 +315,7 @@ def delete_subject(
     subject_id: int,
     db: Session = Depends(get_db)
 ):
-    db_subject = db.query(Subject).filter(
-        Subject.id == subject_id
-    ).first()
-    if not db_subject:
-        raise HTTPException(status_code=404,detail="Subject not found")
+    db_subject = get_subject(subject_id,db)
     db_subject.is_active = False
     db.commit()
     db.refresh(db_subject)
@@ -397,11 +327,7 @@ def delete_student(
     student_id: int,
     db: Session = Depends(get_db)
 ):
-    db_student = db.query(Student).filter(
-        Student.id == student_id
-    ).first()
-    if not db_student:
-        raise HTTPException(status_code=404,detail="Student not found")
+    db_student = get_student(student_id,db)
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == student_id,
         StudentStandard.is_current == True
@@ -421,14 +347,10 @@ def reactivate_student(
     enrollment: ReactivateStudent,
     db: Session = Depends(get_db)
 ):
-    existing_student = db.query(Student).filter(Student.id == student_id).first()
-    if not existing_student:
-        raise HTTPException(status_code=404,detail="Student not found")
+    existing_student = get_student(student_id,db)
     if existing_student.is_active == True:
         raise HTTPException(status_code=400,detail="Student is already active")
-    standard = db.query(Standard).filter(Standard.id == enrollment.standard_id).first()
-    if not standard:
-        raise HTTPException(status_code=404,detail="Standard not found")
+    get_standard(enrollment.standard_id,db)
     latest_enrollment = db.query(StudentStandard).filter(
         StudentStandard.student_id == student_id
     ).order_by(
