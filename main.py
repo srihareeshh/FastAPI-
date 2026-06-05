@@ -5,6 +5,10 @@ from database import SessionLocal, engine
 from fastapi import UploadFile, File
 import cloudinary.uploader
 from passlib.context import CryptContext
+from jose import jwt
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
 from models import User
 from models import (
     Base,
@@ -33,6 +37,10 @@ cloudinary.config(
     api_secret="****"
 )
 Base.metadata.create_all(bind=engine)
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 app = FastAPI()
 pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 def get_db():
