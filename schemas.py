@@ -71,3 +71,6 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: Literal["Admin","Teacher","Student"]
+class LoginRequest(BaseModel):
+    username: str
+    password: str

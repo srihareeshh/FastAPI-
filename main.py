@@ -28,7 +28,8 @@ from schemas import (
     StudentUpdate,
     SubjectUpdate,
     ReactivateStudent,
-    UserCreate
+    UserCreate,
+    LoginRequest
 )
 import cloudinary
 cloudinary.config(
@@ -75,6 +76,15 @@ def hash_password(password: str):
     return pwd_context.hash(password)
 def verify_password(plain_password: str,hashed_password: str):
     return pwd_context.verify(plain_password,hashed_password)
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update(
+        {
+            "exp": expire
+        }
+    )
+    return jwt.encode(to_encode,SECRET_KEY,algorithm=ALGORITHM)
 @app.post("/standards",tags=["Standards"],summary="Create a standard")
 def create_standard(
     standard: StandardCreate,
@@ -476,4 +486,23 @@ def create_user(user: UserCreate,db: Session = Depends(get_db)):
     db.refresh(db_user)
     return {
         "message": "User created successfully"
+    }
+@app.post("/login",tags=["Authentication"],summary="Login user")
+def login(credentials: LoginRequest,db: Session = Depends(get_db)):
+    user = db.query(User).filter(
+        User.username == credentials.username
+    ).first()
+    if not user:
+        raise HTTPException(status_code=401,detail="Invalid username or password")
+    if not verify_password(credentials.password,user.password_hash):
+        raise HTTPException(status_code=401,detail="Invalid username or password")
+    token = create_access_token(
+        {
+            "sub": user.username,
+            "role": user.role
+        }
+    )
+    return {
+        "access_token": token,
+        "token_type": "bearer"
     }
