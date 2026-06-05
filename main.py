@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from fastapi import UploadFile, File
 import cloudinary.uploader
+from models import User
 from models import (
     Base,
     Standard,

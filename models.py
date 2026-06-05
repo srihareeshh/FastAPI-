@@ -58,3 +58,9 @@ class StudentMark(Base, TimestampMixin):
     subject = relationship("Subject",back_populates="marks")
     __table_args__ = (CheckConstraint("marks >= 0",name="check_marks_non_negative"),
     UniqueConstraint("student_standard_id","subject_id",name="unique_student_subject_mark"),)
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer,primary_key=True,index=True)
+    username = Column(String(100),unique=True,nullable=False)
+    password_hash = Column(String(255),nullable=False)
+    role = Column(String(20),nullable=False)
