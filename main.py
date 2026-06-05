@@ -23,7 +23,8 @@ from schemas import (
     MarkUpdate,
     StudentUpdate,
     SubjectUpdate,
-    ReactivateStudent
+    ReactivateStudent,
+    UserCreate
 )
 import cloudinary
 cloudinary.config(
@@ -455,3 +456,16 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
         db.rollback()
         raise HTTPException(status_code=500,detail="Failed to save image URL")
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
+@app.post("/users",tags=["Users"],summary="Create a user")
+def create_user(user: UserCreate,db: Session = Depends(get_db)):
+    db_user = User(username=user.username,password_hash=hash_password(user.password),role=user.role)
+    db.add(db_user)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409,detail="Username already exists")
+    db.refresh(db_user)
+    return {
+        "message": "User created successfully"
+    }

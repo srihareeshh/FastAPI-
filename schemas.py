@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from typing import Literal
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -66,3 +67,7 @@ class SubjectUpdate(BaseModel):
 class ReactivateStudent(BaseModel):
     standard_id: int
     start_year: str
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: Literal["Admin","Teacher","Student"]
