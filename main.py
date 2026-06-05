@@ -105,10 +105,18 @@ def get_current_user(
         }
     except JWTError:
         raise HTTPException(status_code=401,detail="Invalid token")
+def require_role(
+    allowed_roles: list
+):
+    def role_checker(current_user = Depends(get_current_user)):
+        if current_user["role"] not in allowed_roles:
+            raise HTTPException(status_code=403,detail="Access denied")
+        return current_user
+    return role_checker
 @app.post("/standards",tags=["Standards"],summary="Create a standard")
 def create_standard(
     standard: StandardCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
 ):
     db_standard = Standard(
         std_name=standard.std_name
@@ -195,7 +203,7 @@ def enroll_student(
 @app.post("/subjects",tags=["Subjects"],summary="Create a subject")
 def create_subject(
     subject: SubjectCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
 ):
     get_standard(subject.standard_id,db)
     existing_subject = db.query(Subject).filter(
@@ -223,7 +231,7 @@ def create_subject(
 @app.post("/marks",tags=["Marks"],summary="Add marks")
 def add_marks(
     mark: MarkCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     enrollment = get_enrollment(mark.student_standard_id,db)
     subject = get_subject(mark.subject_id,db)
@@ -308,7 +316,7 @@ def get_mark_by_id(
 def update_mark(
     mark_id: int,
     updated_mark: MarkUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     db_mark = get_mark(mark_id,db)
     db_mark.marks = updated_mark.marks
@@ -371,7 +379,7 @@ def delete_subject(
 @app.delete("/students/{student_id}",tags=["Students"])
 def delete_student(
     student_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
 ):
     db_student = get_student(student_id,db)
     current_enrollments = db.query(StudentStandard).filter(
