@@ -361,11 +361,7 @@ def update_student(
     db.refresh(db_student)
     return db_student
 @app.put("/subjects/{subject_id}",tags=["Subjects"],summary="Update a subject")
-def update_subject(
-    subject_id: int,
-    updated_subject: SubjectUpdate,
-    db: Session = Depends(get_db)
-):
+def update_subject(subject_id: int,updated_subject: SubjectUpdate,db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
     db_subject = get_subject(subject_id,db)
     if db_subject.is_active == False:
         raise HTTPException(status_code=400,detail="Cannot update inactive subject")
@@ -380,7 +376,7 @@ def update_subject(
 @app.delete("/subjects/{subject_id}",tags=["Subjects"],summary="Deactivate a subject")
 def delete_subject(
     subject_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
 ):
     db_subject = get_subject(subject_id,db)
     db_subject.is_active = False
@@ -552,7 +548,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends
         "access_token": token,
         "token_type": "bearer"
     }
-@app.get("/me",tags=["Authentication"])
+@app.get("/me",tags=["Authentication"],summary="Get current logged in user")
 def get_me(
     current_user = Depends(get_current_user)
 ):
