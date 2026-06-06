@@ -347,7 +347,7 @@ def delete_mark(
     return {
         "message": "Mark deleted successfully"
     }
-@app.put("/students/{student_id}",tags=["Students"])
+@app.put("/students/{student_id}",tags=["Students"],summary="Update student data")
 def update_student(
     student_id: int,
     updated_student: StudentUpdate,
