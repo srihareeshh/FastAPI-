@@ -71,3 +71,4 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: Literal["Admin","Teacher","Student"]
+    student_id: int | None = None

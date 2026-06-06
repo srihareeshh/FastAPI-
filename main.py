@@ -90,19 +90,32 @@ def create_access_token(data: dict):
         }
     )
     return jwt.encode(to_encode,SECRET_KEY,algorithm=ALGORITHM)
+def require_student_access(student_id: int,current_user):
+    if current_user["role"] == "admin":
+        return
+    if current_user["role"] == "teacher":
+        return
+    user=current_user["db_user"]
+    if user.student_id != student_id:
+        raise HTTPException(status_code=403,detail="Access denied")
 def get_current_user(
-    token: str = Depends(oauth2_scheme)
+    token: str = Depends(oauth2_scheme),db: Session = Depends(get_db)
 ):
     try:
         payload = jwt.decode(token,SECRET_KEY,algorithms=[ALGORITHM])
         username = payload.get("sub")
         role = payload.get("role")
+        user = db.query(User).filter(User.username == username).first()
         if username is None:
             raise HTTPException(status_code=401,detail="Invalid token")
+        if not user:
+            raise HTTPException(status_code=401,detail="User not found")
         return {
             "username": username,
-            "role": role
+            "role": role,
+            "db_user": user
         }
+    
     except JWTError:
         raise HTTPException(status_code=401,detail="Invalid token")
 def require_role(
@@ -504,7 +517,7 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
 @app.post("/users",tags=["Users"],summary="Create a user")
 def create_user(user: UserCreate,db: Session = Depends(get_db)):
-    db_user = User(username=user.username,password_hash=hash_password(user.password),role=user.role)
+    db_user = User(username=user.username,password_hash=hash_password(user.password),role=user.role,student_id=user.student_id)
     db.add(db_user)
     try:
         db.commit()
