@@ -517,6 +517,11 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
 @app.post("/users",tags=["Users"],summary="Create a user")
 def create_user(user: UserCreate,db: Session = Depends(get_db)):
+    user.role = user.role.lower()
+    if user.role == "student":
+        if user.student_id is None:
+            raise HTTPException(status_code=400,detail="student_id is required for student role")
+        get_student(user.student_id,db)
     db_user = User(username=user.username,password_hash=hash_password(user.password),role=user.role,student_id=user.student_id)
     db.add(db_user)
     try:
