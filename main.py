@@ -148,7 +148,7 @@ def create_standard(
 @app.post("/students",tags=["Students"],summary="Create a new student")
 def create_student(
     student: StudentCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     get_standard(student.standard_id,db)
     db_student = Student(student_name=student.student_name,is_active=True)
@@ -166,7 +166,7 @@ def create_student(
 @app.post("/enrollments",tags=["Enrollments"],summary="Enroll a student")
 def enroll_student(
     enrollment: EnrollmentCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     student = get_student(enrollment.student_id,db)
     if student.is_active == False:
@@ -339,7 +339,7 @@ def update_mark(
 @app.delete("/marks/{mark_id}",tags=["Marks"],summary="Delete marks")
 def delete_mark(
     mark_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     db_mark = get_mark(mark_id,db)
     db.delete(db_mark)
@@ -351,7 +351,7 @@ def delete_mark(
 def update_student(
     student_id: int,
     updated_student: StudentUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     db_student = get_student(student_id,db)
     if db_student.is_active == False:
@@ -408,7 +408,7 @@ def delete_student(
 def reactivate_student(
     student_id: int,
     enrollment: ReactivateStudent,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
 ):
     existing_student = get_student(student_id,db)
     if existing_student.is_active == True:
