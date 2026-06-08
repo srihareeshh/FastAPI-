@@ -553,3 +553,10 @@ def get_me(
     current_user = Depends(get_current_user)
 ):
     return current_user
+@app.get("/my-profile",tags=["Students"],summary="Get my profile")
+def get_my_profile(current_user = Depends(get_current_user),db: Session = Depends(get_db)):
+    if current_user["role"] != "student":
+        raise HTTPException(status_code=403,detail="Students only")
+    user = current_user["db_user"]
+    student = get_student(user.student_id,db)
+    return student
