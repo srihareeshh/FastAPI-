@@ -512,7 +512,7 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
         raise HTTPException(status_code=500,detail="Failed to save image URL")
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
 @app.post("/users",tags=["Users"],summary="Create a user")
-def create_user(user: UserCreate,db: Session = Depends(get_db)):
+def create_user(user: UserCreate,db: Session = Depends(get_db), current_user = Depends(require_role(["admin"]))):
     user.role = user.role.lower()
     if user.role == "student":
         if user.student_id is None:
