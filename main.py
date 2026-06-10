@@ -570,3 +570,12 @@ def get_my_profile(current_user = Depends(get_current_user),db: Session = Depend
     user = current_user["db_user"]
     student = get_student(user.student_id,db)
     return student
+@app.put("/users/{user_id}/deactivate",tags=["Users"],summary="Deactivate user")
+def deactivate_user(user_id: int,db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
+):
+    user = get_or_404(User,user_id,db,"User")
+    user.is_active = False
+    db.commit()
+    return {
+        "message": "User deactivated successfully"
+    }
