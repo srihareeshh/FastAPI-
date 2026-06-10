@@ -496,6 +496,10 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
 ]
     if image.content_type not in allowed_types:
         raise HTTPException(status_code=400,detail="Only JPG, PNG and WEBP images are allowed")
+    contents = image.file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400,detail="Image size exceeds 5 MB")
+    image.file.seek(0)
     try:
         upload_result = cloudinary.uploader.upload(
             image.file,
