@@ -518,6 +518,8 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
 @app.post("/users",tags=["Users"],summary="Create a user")
 def create_user(user: UserCreate,db: Session = Depends(get_db), current_user = Depends(require_role(["admin"]))):
     user.role = user.role.lower()
+    if len(user.password) < 8:
+        raise HTTPException(status_code=400,detail="Password must be at least 8 characters")
     if user.role == "student":
         if user.student_id is None:
             raise HTTPException(status_code=400,detail="student_id is required for student role")
