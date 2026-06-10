@@ -536,6 +536,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends
     ).first()
     if not user:
         raise HTTPException(status_code=401,detail="Invalid username or password")
+    if not user.is_active:
+        raise HTTPException(status_code=403,detail="Account disabled")
     if not verify_password(form_data.password,user.password_hash):
         raise HTTPException(status_code=401,detail="Invalid username or password")
     token = create_access_token(
