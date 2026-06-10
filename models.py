@@ -65,4 +65,5 @@ class User(Base):
     password_hash = Column(String(255),nullable=False)
     role = Column(String(20),nullable=False)
     student_id = Column(Integer,ForeignKey("students.id"),nullable=True)
+    last_login = Column(DateTime,nullable=True)
     is_active = Column(Boolean,default=True)

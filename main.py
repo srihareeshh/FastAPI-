@@ -546,6 +546,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends
         raise HTTPException(status_code=403,detail="Account disabled")
     if not verify_password(form_data.password,user.password_hash):
         raise HTTPException(status_code=401,detail="Invalid username or password")
+    user.last_login = datetime.now()
+    db.commit()
     token = create_access_token(
         {
             "sub": user.username,
