@@ -562,7 +562,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends
 def get_me(
     current_user = Depends(get_current_user)
 ):
-    return current_user
+    return {
+        "username": current_user["username"],
+        "role": current_user["role"]
+    }
 @app.get("/my-profile",tags=["Students"],summary="Get my profile")
 def get_my_profile(current_user = Depends(get_current_user),db: Session = Depends(get_db)):
     if current_user["role"] != "student":
