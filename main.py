@@ -385,7 +385,7 @@ def delete_subject(
     return {
         "message": "Subject deactivated successfully"
     }
-@app.delete("/students/{student_id}",tags=["Students"])
+@app.delete("/students/{student_id}",tags=["Students"],summary="Deactivate a student")
 def delete_student(
     student_id: int,
     db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
@@ -404,7 +404,7 @@ def delete_student(
     return {
         "message": "Student deactivated successfully"
     }
-@app.put("/students/reactivate/{student_id}",tags=["Students"])
+@app.put("/students/reactivate/{student_id}",tags=["Students"],summary="Reactivate a student")
 def reactivate_student(
     student_id: int,
     enrollment: ReactivateStudent,
@@ -486,7 +486,7 @@ def get_student_report(
         "total": total,
         "average": average
     }
-@app.post("/students/{student_id}/profile-image",tags=["Students"])
+@app.post("/students/{student_id}/profile-image",tags=["Students"],summary="Upload student profile image")
 def upload_student_image(student_id: int,image: UploadFile = File(...),db: Session = Depends(get_db)):
     student = get_student(student_id,db)
     allowed_types = [
