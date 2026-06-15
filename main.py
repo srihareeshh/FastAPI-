@@ -155,7 +155,7 @@ def create_student(
     db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     get_standard(student.standard_id,db)
-    student.student_name = student.student_name.strip()
+    student.student_name = " ".join(student.student_name.split())
     db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
@@ -361,7 +361,7 @@ def update_student(
     db_student = get_student(student_id,db)
     if db_student.is_active == False:
         raise HTTPException(status_code=400,detail="Cannot update inactive student")
-    db_student.student_name = updated_student.student_name.strip()
+    db_student.student_name = " ".join(updated_student.student_name.split())
     db.commit()
     db.refresh(db_student)
     return db_student
