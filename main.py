@@ -537,8 +537,9 @@ def create_user(user: UserCreate,db: Session = Depends(get_db), current_user = D
         raise HTTPException(status_code=409,detail="Username already exists")
     db.refresh(db_user)
     return {
-        "message": "User created successfully"
-    }
+    "message": "User created successfully",
+    "user_id": db_user.id
+}
 @app.post("/login",tags=["Authentication"],summary="Login user")
 def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
     user = db.query(User).filter(
