@@ -111,9 +111,9 @@ def get_current_user(
             raise HTTPException(status_code=401,detail="Invalid token")
         user = db.query(User).filter(User.username == username).first()
         if username is None:
-            raise HTTPException(status_code=401,detail="Invalid token")
+            raise HTTPException(status_code=401,detail="Invalid token",headers={"WWW-Authenticate": "Bearer"})
         if not user:
-            raise HTTPException(status_code=401,detail="User not found")
+            raise HTTPException(status_code=401,detail="User not found",headers={"WWW-Authenticate": "Bearer"})
         return {
             "username": username,
             "role": role,
@@ -121,7 +121,7 @@ def get_current_user(
         }
     
     except JWTError:
-        raise HTTPException(status_code=401,detail="Invalid token")
+        raise HTTPException(status_code=401,detail="Invalid token",headers={"WWW-Authenticate": "Bearer"})
 def require_role(
     allowed_roles: list
 ):
@@ -546,11 +546,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends
         User.username == form_data.username
     ).first()
     if not user:
-        raise HTTPException(status_code=401,detail="Invalid username or password")
+        raise HTTPException(status_code=401,detail="Invalid username or password",headers={"WWW-Authenticate": "Bearer"})
     if not user.is_active:
         raise HTTPException(status_code=403,detail="Account disabled")
     if not verify_password(form_data.password,user.password_hash):
-        raise HTTPException(status_code=401,detail="Invalid username or password")
+        raise HTTPException(status_code=401,detail="Invalid username or password",headers={"WWW-Authenticate": "Bearer"})
     user.last_login = datetime.now()
     db.commit()
     token = create_access_token(
