@@ -156,6 +156,8 @@ def create_student(
 ):
     get_standard(student.standard_id,db)
     student.student_name = " ".join(student.student_name.split())
+    if not student.student_name:
+        raise HTTPException(status_code=400,detail="Student name cannot be empty")
     db_student = Student(student_name=student.student_name,is_active=True)
     db.add(db_student)
     db.flush()
@@ -362,6 +364,8 @@ def update_student(
     if db_student.is_active == False:
         raise HTTPException(status_code=400,detail="Cannot update inactive student")
     db_student.student_name = " ".join(updated_student.student_name.split())
+    if not db_student.student_name:
+        raise HTTPException(status_code=400,detail="Student name cannot be empty")
     db.commit()
     db.refresh(db_student)
     return db_student
