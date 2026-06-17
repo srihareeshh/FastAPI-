@@ -43,7 +43,7 @@ class SubjectCreate(BaseModel):
 class MarkCreate(BaseModel):
     student_standard_id: int
     subject_id: int
-    marks: int
+    marks: int = Field(ge=0,le=100)
     @field_validator("marks")
     @classmethod
     def validate_marks(cls, value):
@@ -53,7 +53,7 @@ class MarkCreate(BaseModel):
             )
         return value
 class MarkUpdate(BaseModel):
-    marks: int
+    marks: int = Field(ge=0,le=100)
     @field_validator("marks")
     @classmethod
     def marks_must_be_non_negative(cls, v):
