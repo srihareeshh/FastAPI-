@@ -47,9 +47,7 @@ CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
 CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
 cloudinary.config(cloud_name=CLOUDINARY_CLOUD_NAME,api_key=CLOUDINARY_API_KEY,api_secret=CLOUDINARY_API_SECRET)
 app = FastAPI()
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="login"
-)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 def get_db():
     db = SessionLocal()
@@ -72,13 +70,8 @@ def get_enrollment(enrollment_id: int,db: Session):
     return get_or_404(StudentStandard,enrollment_id,db,"Enrollment")
 def get_mark(mark_id: int,db: Session):
     return get_or_404(StudentMark,mark_id,db,"Mark")
-def build_academic_year(
-    start_year: int
-):
-    return (
-        f"{start_year}-"
-        f"{start_year + 1}"
-    )
+def build_academic_year(start_year: int):
+    return (f"{start_year}-"f"{start_year + 1}")
 def hash_password(password: str):
     return pwd_context.hash(password)
 def verify_password(plain_password: str,hashed_password: str):
@@ -86,11 +79,7 @@ def verify_password(plain_password: str,hashed_password: str):
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update(
-        {
-            "exp": expire
-        }
-    )
+    to_encode.update({"exp": expire})
     return jwt.encode(to_encode,SECRET_KEY,algorithm=ALGORITHM)
 def require_student_access(student_id: int,current_user):
     if current_user["role"] == "admin":
@@ -100,9 +89,7 @@ def require_student_access(student_id: int,current_user):
     user=current_user["db_user"]
     if user.student_id != student_id:
         raise HTTPException(status_code=403,detail="Access denied")
-def get_current_user(
-    token: str = Depends(oauth2_scheme),db: Session = Depends(get_db)
-):
+def get_current_user(token: str = Depends(oauth2_scheme),db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token,SECRET_KEY,algorithms=[ALGORITHM])
         username = payload.get("sub")
@@ -114,46 +101,32 @@ def get_current_user(
             raise HTTPException(status_code=401,detail="Invalid token",headers={"WWW-Authenticate": "Bearer"})
         if not user:
             raise HTTPException(status_code=401,detail="User not found",headers={"WWW-Authenticate": "Bearer"})
-        return {
-            "username": username,
-            "role": role,
-            "db_user": user
-        }
-    
+        return {"username": username,"role": role,"db_user": user}
     except JWTError:
         raise HTTPException(status_code=401,detail="Invalid token",headers={"WWW-Authenticate": "Bearer"})
-def require_role(
-    allowed_roles: list
-):
+def require_role(allowed_roles: list):
     def role_checker(current_user = Depends(get_current_user)):
         if current_user["role"] not in allowed_roles:
             raise HTTPException(status_code=403,detail="Access denied")
         return current_user
     return role_checker
-@app.post("/standards",tags=["Standards"],summary="Create a standard")
+@app.post("/standards",tags=["Standards"],summary="Create a standard",status_code=201)
 def create_standard(
     standard: StandardCreate,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
-):
-    db_standard = Standard(
-        std_name=standard.std_name
-    )
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
+    db_standard = Standard(std_name=standard.std_name)
     db.add(db_standard)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Standard already exists"
-        )
+        raise HTTPException(status_code=409,detail="Standard already exists")
     db.refresh(db_standard)
     return db_standard
-@app.post("/students",tags=["Students"],summary="Create a new student")
+@app.post("/students",tags=["Students"],summary="Create a new student",status_code=201)
 def create_student(
     student: StudentCreate,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))):
     get_standard(student.standard_id,db)
     student.student_name = " ".join(student.student_name.split())
     if not student.student_name:
@@ -170,17 +143,14 @@ def create_student(
         raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
     db.refresh(db_student)
     return db_student
-@app.post("/enrollments",tags=["Enrollments"],summary="Enroll a student")
+@app.post("/enrollments",tags=["Enrollments"],summary="Enroll a student",status_code=201)
 def enroll_student(
     enrollment: EnrollmentCreate,
     db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
 ):
     student = get_student(enrollment.student_id,db)
     if student.is_active == False:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot enroll inactive student"
-        )
+        raise HTTPException(status_code=400,detail="Cannot enroll inactive student")
     get_standard(enrollment.standard_id,db)
     new_academic_year = build_academic_year(enrollment.start_year)
     existing_year_enrollment = db.query(StudentStandard).filter(
@@ -220,11 +190,8 @@ def enroll_student(
         "academic_year": new_enrollment.academic_year,
         "is_current": new_enrollment.is_current
     }
-@app.post("/subjects",tags=["Subjects"],summary="Create a subject")
-def create_subject(
-    subject: SubjectCreate,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
-):
+@app.post("/subjects",tags=["Subjects"],summary="Create a subject",status_code=201)
+def create_subject(subject: SubjectCreate,db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
     get_standard(subject.standard_id,db)
     existing_subject = db.query(Subject).filter(
     Subject.subject_name == subject.subject_name,
@@ -235,24 +202,20 @@ def create_subject(
         existing_subject.is_active = True
         db.commit()
         db.refresh(existing_subject)
-        return {
-            "message": "Inactive subject reactivated successfully"
-        }
+        return {"message": "Inactive subject reactivated successfully"}
     db_subject = Subject(subject_name=subject.subject_name,standard_id=subject.standard_id)
     db.add(db_subject)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,detail="Subject already exists for this standard")
+        raise HTTPException(status_code=409,detail="Subject already exists for this standard")
     db.refresh(db_subject)
     return db_subject
-@app.post("/marks",tags=["Marks"],summary="Add marks")
+@app.post("/marks",tags=["Marks"],summary="Add marks",status_code=201)
 def add_marks(
     mark: MarkCreate,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))):
     enrollment = get_enrollment(mark.student_standard_id,db)
     subject = get_subject(mark.subject_id,db)
     if enrollment.standard_id != subject.standard_id:
@@ -263,81 +226,57 @@ def add_marks(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409,detail="Marks already entered for this subject" )
+        raise HTTPException(status_code=409,detail="Marks already entered for this subject")
     db.refresh(db_mark)
     return db_mark
 @app.get("/standards",tags=["Standards"],summary="Get all standards")
-def get_standards(
-    db: Session = Depends(get_db)
-):
+def get_standards(db: Session = Depends(get_db)):
     standards = db.query(Standard).all()
     return standards
 @app.get("/students",tags=["Students"],summary="Get all active students")
-def get_students(
-    db: Session = Depends(get_db)
-):
+def get_students(db: Session = Depends(get_db)):
     students = db.query(Student).filter(Student.is_active == True).all()
     return students
 @app.get("/subjects",tags=["Subjects"],summary="Get all active subjects")
-def get_subjects(
-    db: Session = Depends(get_db)
-):
+def get_subjects(db: Session = Depends(get_db)):
     subjects = db.query(Subject).filter(Subject.is_active == True).all()
     return subjects
 @app.get("/enrollments",tags=["Enrollments"],summary="Get all enrollments")
-def get_enrollments(
-    db: Session = Depends(get_db)
-):
+def get_enrollments(db: Session = Depends(get_db)):
     enrollments = db.query(StudentStandard).all()
     return enrollments
 @app.get("/marks",tags=["Marks"],summary="Get all marks")
-def get_marks(
-    db: Session = Depends(get_db)
-):
+def get_marks(db: Session = Depends(get_db)):
     marks = db.query(StudentMark).all()
     return marks
 @app.get("/students/{student_id}",tags=["Students"],summary="Get student by ID")
-def get_student_by_id(
-    student_id: int,
-    db: Session = Depends(get_db)
-):
+def get_student_by_id(student_id: int,db: Session = Depends(get_db)):
     student = get_student(student_id,db)
     if not student.is_active:
         raise HTTPException(status_code=404,detail="Student not found")
     return student
 @app.get("/standards/{standard_id}",tags=["Standards"],summary="Get standard by ID")
-def get_standard_by_id(
-    standard_id: int,
-    db: Session = Depends(get_db)
-):
+def get_standard_by_id(standard_id: int,db: Session = Depends(get_db)):
     return get_standard(standard_id,db)
 @app.get("/subjects/{subject_id}",tags=["Subjects"],summary="Get subject by ID")
-def get_subject_by_id(
-    subject_id: int,
-    db: Session = Depends(get_db)
-):
+def get_subject_by_id(subject_id: int,db: Session = Depends(get_db)):
     subject=get_subject(subject_id,db)
     if not subject.is_active:
         raise HTTPException(status_code=404,detail="Subject not found")
     return subject
 @app.get("/enrollments/{enrollment_id}",tags=["Enrollments"],summary="Get enrollment by ID")
-def get_enrollment_by_id(
-    enrollment_id: int,
-    db: Session = Depends(get_db)
-):
+def get_enrollment_by_id(enrollment_id: int,db: Session = Depends(get_db)):
     return get_enrollment(enrollment_id,db)
 @app.get("/marks/{mark_id}",tags=["Marks"],summary="Get mark by ID")
 def get_mark_by_id(
     mark_id: int,
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
     return get_mark(mark_id,db)
 @app.put("/marks/{mark_id}",tags=["Marks"],summary="Update marks")
 def update_mark(
     mark_id: int,
     updated_mark: MarkUpdate,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))):
     db_mark = get_mark(mark_id,db)
     db_mark.marks = updated_mark.marks
     db.commit()
@@ -346,20 +285,16 @@ def update_mark(
 @app.delete("/marks/{mark_id}",tags=["Marks"],summary="Delete marks")
 def delete_mark(
     mark_id: int,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))):
     db_mark = get_mark(mark_id,db)
     db.delete(db_mark)
     db.commit()
-    return {
-        "message": "Mark deleted successfully"
-    }
+    return {"message": "Mark deleted successfully"}
 @app.put("/students/{student_id}",tags=["Students"],summary="Update student data")
 def update_student(
     student_id: int,
     updated_student: StudentUpdate,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin","teacher"]))):
     db_student = get_student(student_id,db)
     if db_student.is_active == False:
         raise HTTPException(status_code=400,detail="Cannot update inactive student")
@@ -385,26 +320,21 @@ def update_subject(subject_id: int,updated_subject: SubjectUpdate,db: Session = 
 @app.delete("/subjects/{subject_id}",tags=["Subjects"],summary="Deactivate a subject")
 def delete_subject(
     subject_id: int,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
     db_subject = get_subject(subject_id,db)
     db_subject.is_active = False
     db.commit()
     db.refresh(db_subject)
-    return {
-        "message": "Subject deactivated successfully"
-    }
+    return {"message": "Subject deactivated successfully"}
 @app.delete("/students/{student_id}",tags=["Students"],summary="Deactivate a student")
 def delete_student(
     student_id: int,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
     db_student = get_student(student_id,db)
     current_enrollments = db.query(StudentStandard).filter(
         StudentStandard.student_id == student_id,
         StudentStandard.is_current == True
     ).all()
-
     for row in current_enrollments:
         row.is_current = False
     db_student.is_active = False
@@ -417,8 +347,7 @@ def delete_student(
 def reactivate_student(
     student_id: int,
     enrollment: ReactivateStudent,
-    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
-):
+    db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
     existing_student = get_student(student_id,db)
     if existing_student.is_active == True:
         raise HTTPException(status_code=400,detail="Student is already active")
@@ -459,10 +388,7 @@ def reactivate_student(
         "message": "Student reactivated successfully"
     }
 @app.get("/students/{student_id}/report",tags=["Students"],summary="Get student by ID")
-def get_student_report(
-    student_id: int,
-    db: Session = Depends(get_db)
-):
+def get_student_report(student_id: int,db: Session = Depends(get_db)):
     student = get_student(student_id, db)
     current_enrollment = db.query(StudentStandard).filter(
         StudentStandard.student_id == student_id,
@@ -476,12 +402,7 @@ def get_student_report(
     total = 0
     for mark in marks:
         subject = get_subject(mark.subject_id,db)
-        subject_report.append(
-            {
-                "subject": subject.subject_name,
-                "marks": mark.marks
-            }
-        )
+        subject_report.append({"subject": subject.subject_name,"marks": mark.marks})
         total += mark.marks
     average = 0
     if len(marks) > 0:
@@ -498,11 +419,7 @@ def get_student_report(
 @app.post("/students/{student_id}/profile-image",tags=["Students"],summary="Upload student profile image")
 def upload_student_image(student_id: int,image: UploadFile = File(...),db: Session = Depends(get_db)):
     student = get_student(student_id,db)
-    allowed_types = [
-    "image/jpeg",
-    "image/png",
-    "image/webp"
-]
+    allowed_types = ["image/jpeg","image/png","image/webp"]
     if image.content_type not in allowed_types:
         raise HTTPException(status_code=400,detail="Only JPG, PNG and WEBP images are allowed")
     contents = image.file.read()
@@ -510,10 +427,7 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
         raise HTTPException(status_code=400,detail="Image size exceeds 5 MB")
     image.file.seek(0)
     try:
-        upload_result = cloudinary.uploader.upload(
-            image.file,
-            folder=f"students/{student_id}"
-        )
+        upload_result = cloudinary.uploader.upload(image.file,folder=f"students/{student_id}")
     except Exception:
         raise HTTPException(status_code=500,detail="Failed to upload image")
     student.profile_image = (upload_result["secure_url"])
@@ -524,7 +438,7 @@ def upload_student_image(student_id: int,image: UploadFile = File(...),db: Sessi
         db.rollback()
         raise HTTPException(status_code=500,detail="Failed to save image URL")
     return {"message": "Image uploaded successfully","image_url": student.profile_image}
-@app.post("/users",tags=["Users"],summary="Create a user")
+@app.post("/users",tags=["Users"],summary="Create a user",status_code=201)
 def create_user(user: UserCreate,db: Session = Depends(get_db), current_user = Depends(require_role(["admin"]))):
     user.role = user.role.lower()
     if len(user.password) < 8:
@@ -541,10 +455,7 @@ def create_user(user: UserCreate,db: Session = Depends(get_db), current_user = D
         db.rollback()
         raise HTTPException(status_code=409,detail="Username already exists")
     db.refresh(db_user)
-    return {
-    "message": "User created successfully",
-    "user_id": db_user.id
-}
+    return {"message": "User created successfully","user_id": db_user.id}
 @app.post("/login",tags=["Authentication"],summary="Login user")
 def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
     user = db.query(User).filter(
@@ -558,24 +469,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends
         raise HTTPException(status_code=401,detail="Invalid username or password",headers={"WWW-Authenticate": "Bearer"})
     user.last_login = datetime.now()
     db.commit()
-    token = create_access_token(
-        {
-            "sub": user.username,
-            "role": user.role
-        }
-    )
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
+    token = create_access_token({"sub": user.username,"role": user.role})
+    return {"access_token": token,"token_type": "bearer"}
 @app.get("/me",tags=["Authentication"],summary="Get current logged in user")
-def get_me(
-    current_user = Depends(get_current_user)
-):
-    return {
-        "username": current_user["username"],
-        "role": current_user["role"]
-    }
+def get_me(current_user = Depends(get_current_user)):
+    return {"username": current_user["username"],"role": current_user["role"]}
 @app.get("/my-profile",tags=["Students"],summary="Get my profile")
 def get_my_profile(current_user = Depends(get_current_user),db: Session = Depends(get_db)):
     if current_user["role"] != "student":
@@ -584,11 +482,8 @@ def get_my_profile(current_user = Depends(get_current_user),db: Session = Depend
     student = get_student(user.student_id,db)
     return student
 @app.put("/users/{user_id}/deactivate",tags=["Users"],summary="Deactivate user")
-def deactivate_user(user_id: int,db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))
-):
+def deactivate_user(user_id: int,db: Session = Depends(get_db),current_user = Depends(require_role(["admin"]))):
     user = get_or_404(User,user_id,db,"User")
     user.is_active = False
     db.commit()
-    return {
-        "message": "User deactivated successfully"
-    }
+    return {"message": "User deactivated successfully"}
