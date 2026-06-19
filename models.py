@@ -67,3 +67,4 @@ class User(Base):
     student_id = Column(Integer,ForeignKey("students.id"),nullable=True)
     last_login = Column(DateTime,nullable=True)
     is_active = Column(Boolean,default=True)
+    __table_args__ = (UniqueConstraint("username",name="unique_username"),)

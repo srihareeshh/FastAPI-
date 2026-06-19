@@ -16,12 +16,8 @@ class EnrollmentCreate(BaseModel):
     @field_validator("start_year")
     @classmethod
     def validate_start_year(cls, v):
-
         if v < 2000:
-            raise ValueError(
-                "Academic year must be 2000 or later"
-            )
-
+            raise ValueError("Academic year must be 2000 or later")
         return v
 class StudentCreate(BaseModel):
     student_name: str
@@ -30,12 +26,8 @@ class StudentCreate(BaseModel):
     @field_validator("start_year")
     @classmethod
     def validate_start_year(cls, v):
-
         if v < 2000:
-            raise ValueError(
-                "Academic year must be 2000 or later"
-            )
-
+            raise ValueError("Academic year must be 2000 or later")
         return v
 class SubjectCreate(BaseModel):
     subject_name: str
@@ -48,9 +40,7 @@ class MarkCreate(BaseModel):
     @classmethod
     def validate_marks(cls, value):
         if value < 0:
-            raise ValueError(
-                "Marks cannot be negative"
-            )
+            raise ValueError("Marks cannot be negative")
         return value
 class MarkUpdate(BaseModel):
     marks: int = Field(ge=0,le=100)
