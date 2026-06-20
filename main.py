@@ -384,9 +384,7 @@ def reactivate_student(
         db.rollback()
         raise HTTPException(status_code=409,detail="Student already has enrollment for this academic year")
     db.refresh(existing_student)
-    return {
-        "message": "Student reactivated successfully"
-    }
+    return {"message": "Student reactivated successfully"}
 @app.get("/students/{student_id}/report",tags=["Students"],summary="Get student by ID")
 def get_student_report(student_id: int,db: Session = Depends(get_db)):
     student = get_student(student_id, db)
@@ -416,7 +414,8 @@ def get_student_report(student_id: int,db: Session = Depends(get_db)):
         "total": total,
         "average": average
     }
-@app.post("/students/{student_id}/profile-image",tags=["Students"],summary="Upload student profile image")
+@app.post("/students/{student_id}/profile-image",current_user = Depends(require_role(["admin","teacher"]))
+          ,tags=["Students"],summary="Upload student profile image")
 def upload_student_image(student_id: int,image: UploadFile = File(...),db: Session = Depends(get_db)):
     student = get_student(student_id,db)
     allowed_types = ["image/jpeg","image/png","image/webp"]
